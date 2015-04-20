@@ -21,7 +21,7 @@ dependencies {
 }
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdkVersion 22
     buildToolsVersion rootProject.ext.buildToolsVersion
 
     compileOptions {
@@ -30,8 +30,8 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        minSdkVersion 21
+        targetSdkVersion 22
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
     }
 
