@@ -1,0 +1,3 @@
+[submodule "third-party/android-ex"]
+	path = third-party/android-ex
+	url = git@github.com:obviousengineering/android-ex.git

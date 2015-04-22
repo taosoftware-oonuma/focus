@@ -16,12 +16,14 @@
 
 package com.obviousengine.android.focus;
 
+import android.annotation.TargetApi;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.hardware.camera2.params.TonemapCurve;
+import android.os.Build;
 import android.util.Pair;
 import android.util.Rational;
 
@@ -41,9 +43,10 @@ import com.obviousengine.android.focus.debug.Log;
  * Can be used for debugging to output details about Camera2 capture request and
  * responses.
  */
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 final class CaptureDataSerializer {
 
-    private interface Writeable {
+    private interface Writable {
         void write(Writer writer) throws IOException;
     }
 
@@ -88,7 +91,7 @@ final class CaptureDataSerializer {
      */
     private static void dumpMetadata(final String title, final CaptureRequest metadata,
             Writer writer) {
-        Writeable writeable = new Writeable() {
+        Writable writable = new Writable() {
             @Override
             public void write(Writer writer) throws IOException {
                 List<CaptureRequest.Key<?>> keys = metadata.getKeys();
@@ -102,7 +105,7 @@ final class CaptureDataSerializer {
                 }
             }
         };
-        dumpMetadata(writeable, new BufferedWriter(writer));
+        dumpMetadata(writable, new BufferedWriter(writer));
     }
 
     /**
@@ -111,7 +114,7 @@ final class CaptureDataSerializer {
      */
     private static void dumpMetadata(final String title,
                                      final CaptureResult metadata, Writer writer) {
-        Writeable writeable = new Writeable() {
+        Writable writable = new Writable() {
             @Override
             public void write(Writer writer) throws IOException {
                 List<CaptureResult.Key<?>> keys = metadata.getKeys();
@@ -125,7 +128,7 @@ final class CaptureDataSerializer {
                 }
             }
         };
-        dumpMetadata(writeable, new BufferedWriter(writer));
+        dumpMetadata(writable, new BufferedWriter(writer));
     }
 
     private static String metadataValueToString(Object object) {
@@ -164,7 +167,7 @@ final class CaptureDataSerializer {
         }
     }
 
-    private static void dumpMetadata(Writeable metadata, Writer writer) {
+    private static void dumpMetadata(Writable metadata, Writer writer) {
         /**
          * Save metadata to file, appending if another metadata is already in
          * that file.

@@ -19,9 +19,11 @@ package com.obviousengine.android.focus;
 import static com.obviousengine.android.focus.debug.Log.Tag;
 import static com.obviousengine.android.focus.CaptureSession.OnImageSavedListener;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
+import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -35,6 +37,7 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
@@ -55,6 +58,7 @@ import com.obviousengine.android.focus.exif.Rational;
 /**
  * {@link FocusCamera} implementation directly on top of the Camera2 API.
  */
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 final class DefaultFocusCamera extends AbstractFocusCamera {
 
     /** Captures that are requested but haven't completed yet. */
@@ -328,6 +332,11 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     }
 
     @Override
+    public void startPreview(SurfaceTexture surfaceTexture, CaptureReadyCallback listener) {
+        startPreview(new Surface(surfaceTexture), listener);
+    }
+
+    @Override
     public void startPreview(Surface previewSurface, CaptureReadyCallback listener) {
         this.previewSurface = previewSurface;
         setupAsync(this.previewSurface, listener);
@@ -335,17 +344,17 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
 
     @Override
     public void setViewfinderSize(int width, int height) {
-        throw new RuntimeException("Not implemented yet.");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
     public boolean isFlashSupported(boolean enhanced) {
-        throw new RuntimeException("Not implemented yet.");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
     public boolean isSupportingEnhancedMode() {
-        throw new RuntimeException("Not implemented yet.");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override

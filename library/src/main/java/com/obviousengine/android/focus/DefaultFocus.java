@@ -20,11 +20,13 @@ import static com.obviousengine.android.focus.debug.Log.Tag;
 import static com.obviousengine.android.focus.FocusCamera.Facing;
 import static com.obviousengine.android.focus.FocusCamera.OpenCallback;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.os.Build;
 import android.os.Handler;
 import android.util.DisplayMetrics;
 
@@ -33,6 +35,7 @@ import com.obviousengine.android.focus.debug.Log;
 /**
  * The {@link Focus} implementation on top of Camera2 API.
  */
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 final class DefaultFocus extends Focus {
 
     private static final Tag TAG = new Tag("DefaultFocus");

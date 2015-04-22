@@ -24,15 +24,28 @@ android {
     compileSdkVersion 22
     buildToolsVersion rootProject.ext.buildToolsVersion
 
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 22
+        testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_7
         targetCompatibility JavaVersion.VERSION_1_7
     }
 
-    defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 22
-        testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
+    sourceSets {
+        main {
+            java {
+                srcDirs = [
+                        'src/main/java',
+                        '../third-party/android-ex/camera2/portability/src',
+                        '../third-party/android-ex/camera2/public/src',
+                        '../third-party/android-ex/camera2/utils/src'
+                ]
+            }
+        }
     }
 
     testOptions {

@@ -17,12 +17,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.android.ex.camera2.portability.CameraCapabilities;
 import com.obviousengine.android.focus.debug.Log;
 import com.obviousengine.android.focus.exif.ExifInterface;
 
 public final class Utils {
 
     private static final Log.Tag TAG = new Log.Tag("Utils");
+
+    private final static int MAX_PREVIEW_FPS_TIMES_1000 = 400000;
+    private final static int PREFERRED_PREVIEW_FPS_TIMES_1000 = 30000;
+
+    static final boolean HAS_AUTO_FOCUS_MOVE_CALLBACK = hasAutoFocusMoveCallback();
 
     static final boolean IS_NEXUS_4 = "mako".equalsIgnoreCase(Build.DEVICE);
     static final boolean IS_NEXUS_5 = "LGE".equalsIgnoreCase(Build.MANUFACTURER)
@@ -39,6 +45,14 @@ public final class Utils {
     static boolean isLOrHigher() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                 || "L".equals(Build.VERSION.CODENAME);
+    }
+
+    static boolean isJellyBeanMr2OrHigher() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2;
+    }
+
+    static boolean hasAutoFocusMoveCallback() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
     }
 
     /**
@@ -277,6 +291,66 @@ public final class Utils {
         }
 
         return optimalSizeIndex;
+    }
+
+    /**
+     * For still image capture, we need to get the right fps range such that the
+     * camera can slow down the framerate to allow for less-noisy/dark
+     * viewfinder output in dark conditions.
+     *
+     * @param capabilities Camera's capabilities.
+     * @return null if no appropiate fps range can't be found. Otherwise, return
+     *         the right range.
+     */
+    static int[] getPhotoPreviewFpsRange(CameraCapabilities capabilities) {
+        return getPhotoPreviewFpsRange(capabilities.getSupportedPreviewFpsRange());
+    }
+
+    static int[] getPhotoPreviewFpsRange(List<int[]> frameRates) {
+        if (frameRates.size() == 0) {
+            Log.e(TAG, "No supported frame rates returned!");
+            return null;
+        }
+
+        // Find the lowest min rate in supported ranges who can cover 30fps.
+        int lowestMinRate = MAX_PREVIEW_FPS_TIMES_1000;
+        for (int[] rate : frameRates) {
+            int minFps = rate[0];
+            int maxFps = rate[1];
+            if (maxFps >= PREFERRED_PREVIEW_FPS_TIMES_1000 &&
+                    minFps <= PREFERRED_PREVIEW_FPS_TIMES_1000 &&
+                    minFps < lowestMinRate) {
+                lowestMinRate = minFps;
+            }
+        }
+
+        // Find all the modes with the lowest min rate found above, the pick the
+        // one with highest max rate.
+        int resultIndex = -1;
+        int highestMaxRate = 0;
+        for (int i = 0; i < frameRates.size(); i++) {
+            int[] rate = frameRates.get(i);
+            int minFps = rate[0];
+            int maxFps = rate[1];
+            if (minFps == lowestMinRate && highestMaxRate < maxFps) {
+                highestMaxRate = maxFps;
+                resultIndex = i;
+            }
+        }
+
+        if (resultIndex >= 0) {
+            return frameRates.get(resultIndex);
+        }
+        Log.e(TAG, "Can't find an appropiate frame rate range!");
+        return null;
+    }
+
+    static int[] getMaxPreviewFpsRange(List<int[]> frameRates) {
+        if (frameRates != null && frameRates.size() > 0) {
+            // The list is sorted. Return the last element.
+            return frameRates.get(frameRates.size() - 1);
+        }
+        return new int[0];
     }
 
     public static Size getDefaultDisplaySize(Context context) {

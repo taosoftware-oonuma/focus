@@ -23,6 +23,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
+import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -429,7 +430,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
         ArrayList<ImageCaptureManager.CapturedImageConstraint> singleCaptureConstraint
                 = new ArrayList<>();
         singleCaptureConstraint.add(new ImageCaptureManager.CapturedImageConstraint() {
-                @Override
+            @Override
             public boolean satisfiesConstraint(TotalCaptureResult captureResult) {
                 Object tag = captureResult.getRequest().getTag();
                 return tag == RequestTag.EXPLICIT_CAPTURE;
@@ -501,6 +502,11 @@ final class ZslFocusCamera extends AbstractFocusCamera {
             // captureNextImage().
             throw new UnsupportedOperationException("Non-ZSL capture not yet supported");
         }
+    }
+
+    @Override
+    public void startPreview(SurfaceTexture surfaceTexture, CaptureReadyCallback listener) {
+        startPreview(new Surface(surfaceTexture), listener);
     }
 
     @Override

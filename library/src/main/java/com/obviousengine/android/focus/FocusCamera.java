@@ -17,6 +17,7 @@
 package com.obviousengine.android.focus;
 
 import android.content.Context;
+import android.graphics.SurfaceTexture;
 import android.location.Location;
 import android.net.Uri;
 import android.view.Surface;
@@ -303,6 +304,11 @@ public interface FocusCamera {
      * camera changes to be either ready or not ready to take another picture.
      */
     void setReadyStateChangedListener(ReadyStateChangedListener listener);
+
+    /**
+     * Starts a preview stream and renders it to the given surface texture.
+     */
+    void startPreview(SurfaceTexture surfaceTexture, CaptureReadyCallback listener);
 
     /**
      * Starts a preview stream and renders it to the given surface.

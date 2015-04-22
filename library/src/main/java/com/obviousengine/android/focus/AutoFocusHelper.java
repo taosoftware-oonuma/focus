@@ -18,11 +18,13 @@ package com.obviousengine.android.focus;
 
 import static com.obviousengine.android.focus.FocusCamera.AutoFocusState;
 
+import android.annotation.TargetApi;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
+import android.os.Build;
 
 import com.obviousengine.android.focus.debug.Log;
 
@@ -30,7 +32,8 @@ import com.obviousengine.android.focus.debug.Log;
  * Helper class to implement auto focus and 3A in camera2-based
  * {@link FocusCamera} implementations.
  */
-public class AutoFocusHelper {
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
+final class AutoFocusHelper {
 
     private static final Log.Tag TAG = new Log.Tag("FocusCameraAFHelp");
 
@@ -253,5 +256,9 @@ public class AutoFocusHelper {
             default:
                 return "unknown";
         }
+    }
+
+    private AutoFocusHelper() {
+        throw new AssertionError("No instances");
     }
 }

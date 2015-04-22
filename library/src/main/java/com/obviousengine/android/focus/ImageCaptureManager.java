@@ -55,7 +55,7 @@ import com.obviousengine.android.focus.debug.Log;
  * they are passed in from the lower-level camera2 API.
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-class ImageCaptureManager extends CameraCaptureSession.CaptureCallback implements
+final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback implements
         ImageReader.OnImageAvailableListener {
     /**
      * Callback to listen for changes to the ability to capture an existing
