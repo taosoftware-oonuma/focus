@@ -255,7 +255,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
      * @param pictureSize the size of the final image to be taken.
      */
     ZslFocusCamera(CameraDevice device, CameraCharacteristics characteristics, Size pictureSize) {
-        Log.v(TAG, "Creating new OneCameraZslImpl");
+        Log.v(TAG, "Creating new ZslFocusCamera");
 
         this.device = device;
         this.characteristics = characteristics;
@@ -513,6 +513,11 @@ final class ZslFocusCamera extends AbstractFocusCamera {
     public void startPreview(Surface previewSurface, CaptureReadyCallback listener) {
         this.previewSurface = previewSurface;
         setupAsync(this.previewSurface, listener);
+    }
+
+    @Override
+    public void setPreviewFrameListener(PreviewFrameListener listener, Handler handler) {
+        throw new UnsupportedOperationException("Not implemented yet.");
     }
 
     @Override

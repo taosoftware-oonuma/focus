@@ -5,7 +5,9 @@ import static com.android.ex.camera2.portability.CameraDeviceInfo.Characteristic
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
+import android.graphics.YuvImage;
 import android.media.CameraProfile;
 import android.os.Build;
 import android.os.Handler;
@@ -21,12 +23,22 @@ import com.obviousengine.android.focus.debug.Log;
 
 final class LegacyFocusCamera extends AbstractFocusCamera {
 
-    private static final Log.Tag TAG = new Log.Tag("LegacyFocusCamera");
+    private static final Log.Tag TAG = new Log.Tag("LegacyFocusCam");
+
+    /** Default JPEG encoding quality. */
+    private static final int JPEG_QUALITY = CameraProfile.getJpegEncodingQualityParameter(
+            CameraProfile.QUALITY_HIGH);
 
     private static final int UPDATE_PARAM_INITIALIZE = 1;
     private static final int UPDATE_PARAM_ZOOM = 2;
     private static final int UPDATE_PARAM_PREFERENCE = 4;
     private static final int UPDATE_PARAM_ALL = -1;
+
+    /** Number of buffers to provide for capturing preview stream.
+     * TODO(eleventigers): number should be decided based on available memory
+     * and the size of preview frames
+     */
+    private static final int NUM_PREVIEW_BUFFERS = 3;
 
     private final Context context;
     private final CameraAgent cameraAgent;
@@ -56,7 +68,12 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     /** Whether closing of this device has been requested. */
     private volatile boolean isClosed = false;
 
+    /**
+     * Thread on which high-priority camera operations, such as grabbing preview
+     * frames for the viewfinder, are running.
+     */
     private final HandlerThread cameraThread;
+    /** Handler of the {@link #cameraThread}. */
     private final Handler cameraHandler;
 
     private final Object autoFocusMoveCallback = Utils.HAS_AUTO_FOCUS_MOVE_CALLBACK ?
@@ -70,8 +87,25 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         }
     }
 
+    /**
+     * Camera preview data proxy. Passes camera frame buffers to
+     * {@link #previewFrameListener} via a dispatcher call.
+     */
+    private final CameraAgent.CameraPreviewDataCallback previewDataCallback =
+            new CameraAgent.CameraPreviewDataCallback() {
+                @Override
+                public void onPreviewFrame(byte[] data, CameraProxy camera) {
+                    previewFrameDispatcher(data);
+                    addPreviewCallbackBuffer(data);
+                }
+            };
+
+    private PreviewFrameListener previewFrameListener;
+
     LegacyFocusCamera(Context context, CameraAgent cameraAgent, CameraProxy cameraProxy,
                       Characteristics characteristics, Size pictureSize) {
+        Log.v(TAG, "Creating new LegacyFocusCamera");
+
         this.context = context.getApplicationContext();
         this.cameraAgent = cameraAgent;
         this.cameraProxy = cameraProxy;
@@ -111,47 +145,10 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
        throw new UnsupportedOperationException("Not implemented yet.");
     }
 
-    /**
-     * Asynchronously sets up the capture session.
-     *
-     * @param previewTexture the surface texture onto which the preview should be
-     *        rendered.
-     * @param listener called when setup is completed.
-     */
-    private void setupAsync(final SurfaceTexture previewTexture, final CaptureReadyCallback listener) {
-        cameraHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                setup(previewTexture, listener);
-            }
-        });
-    }
-
-    /**
-     * Configures and attempts to create a capture session.
-     *
-     * @param previewTexture the surface texture onto which the preview should be
-     *        rendered.
-     * @param listener called when the setup is completed.
-     */
-    private void setup(SurfaceTexture previewTexture, final CaptureReadyCallback listener) {
-        if (cameraSettings.getCurrentFocusMode() ==
-                CameraCapabilities.FocusMode.CONTINUOUS_PICTURE) {
-            cameraProxy.cancelAutoFocus();
-        }
-
-        updateCameraOrientation();
-        updateParametersPictureSize();
-        setCameraParameters(UPDATE_PARAM_ALL);
-
-        cameraProxy.setPreviewTexture(previewTexture);
-        cameraProxy.startPreviewWithCallback(cameraHandler,
-                new CameraAgent.CameraStartPreviewCallback() {
-                    @Override
-                    public void onPreviewStarted() {
-                        listener.onReadyForCapture();
-                    }
-                });
+    @Override
+    public void setPreviewFrameListener(PreviewFrameListener listener, Handler handler) {
+        previewFrameListener = listener;
+        cameraProxy.setPreviewDataCallbackWithBuffer(handler, previewDataCallback);
     }
 
     @Override
@@ -179,12 +176,13 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         cameraProxy.stopPreview();
         surfaceTexture = null;
         isClosed = true;
+        cameraAgent.closeCamera(cameraProxy, true);
+        cameraProxy.getCameraHandler().removeCallbacksAndMessages(null);
         if (Utils.isJellyBeanMr2OrHigher()) {
             cameraThread.quitSafely();
         } else {
             cameraThread.quit();
         }
-        cameraAgent.closeCamera(cameraProxy, true);
         if (closeCallback != null) {
             closeCallback.onCameraClosed();
         }
@@ -221,6 +219,78 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     @Override
     public float getMaxZoom() {
         return cameraCapabilities.getMaxZoomRatio();
+    }
+
+    /**
+     * Asynchronously sets up the capture session.
+     *
+     * @param previewTexture the surface texture onto which the preview should be
+     *        rendered.
+     * @param listener called when setup is completed.
+     */
+    private void setupAsync(final SurfaceTexture previewTexture, final CaptureReadyCallback listener) {
+        cameraHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                setup(previewTexture, listener);
+            }
+        });
+    }
+
+    /**
+     * Configures and attempts to create a capture session.
+     *
+     * @param previewTexture the surface texture onto which the preview should be
+     *        rendered.
+     * @param listener called when the setup is completed.
+     */
+    private void setup(SurfaceTexture previewTexture, final CaptureReadyCallback listener) {
+        if (cameraSettings.getCurrentFocusMode() ==
+                CameraCapabilities.FocusMode.CONTINUOUS_PICTURE) {
+            cameraProxy.cancelAutoFocus();
+        }
+
+        updateCameraOrientation();
+        updateParametersPictureSize();
+        setCameraParameters(UPDATE_PARAM_ALL);
+        addPreviewCallbackBuffers(NUM_PREVIEW_BUFFERS);
+
+        cameraProxy.setPreviewTexture(previewTexture);
+        cameraProxy.startPreviewWithCallback(cameraHandler,
+                new CameraAgent.CameraStartPreviewCallback() {
+                    @Override
+                    public void onPreviewStarted() {
+                        listener.onReadyForCapture();
+                    }
+                });
+    }
+
+    private void addPreviewCallbackBuffer(byte[] buffer) {
+        if (!isClosed) {
+            cameraProxy.addCallbackBuffer(buffer);
+        }
+    }
+
+    private void addPreviewCallbackBuffers(int numBuffers) {
+        Size previewSize = new Size(cameraSettings.getCurrentPreviewSize());
+        int previewFormat = cameraSettings.getCurrentPreviewFormat();
+        int bufferNumBytes = (ImageFormat.getBitsPerPixel(previewFormat) *
+                previewSize.getWidth() * previewSize.getHeight()) / 8;
+        for (int i = 0; i < numBuffers; i++) {
+            addPreviewCallbackBuffer(new byte[bufferNumBytes]);
+        }
+    }
+
+    private void previewFrameDispatcher(byte[] data) {
+        if (!isClosed && previewFrameListener != null) {
+            com.android.ex.camera2.portability.Size previewSize =
+                    cameraSettings.getCurrentPreviewSize();
+            int width = previewSize.width();
+            int height = previewSize.height();
+            int format = cameraSettings.getCurrentPreviewFormat();
+            previewFrameListener.onPreviewFrame(PreviewFrame.valueOf(
+                    new YuvImage(data, format, width, height, null)));
+        }
     }
 
     private void initializeCapabilities() {
@@ -283,7 +353,6 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     }
 
     private void updateCameraParametersZoom() {
-        // Set zoom.
         if (zoomSupported) {
             cameraSettings.setZoomRatio(zoomValue);
         }
@@ -307,9 +376,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     }
 
     private void updateParametersPictureQuality() {
-        int jpegQuality = CameraProfile.getJpegEncodingQualityParameter(cameraProxy.getCameraId(),
-                CameraProfile.QUALITY_HIGH);
-        cameraSettings.setPhotoJpegCompressionQuality(jpegQuality);
+        cameraSettings.setPhotoJpegCompressionQuality(JPEG_QUALITY);
     }
 
     private void updateParametersExposureCompensation() {
@@ -384,6 +451,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
             cameraProxy.setDisplayOrientation(displayRotation);
         }
     }
+
 
     private void setCameraParameters(int updateSet) {
         if ((updateSet & UPDATE_PARAM_INITIALIZE) != 0) {

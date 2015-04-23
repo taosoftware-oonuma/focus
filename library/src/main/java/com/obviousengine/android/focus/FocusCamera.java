@@ -17,9 +17,12 @@
 package com.obviousengine.android.focus;
 
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
+import android.graphics.YuvImage;
 import android.location.Location;
 import android.net.Uri;
+import android.os.Handler;
 import android.view.Surface;
 
 import java.io.File;
@@ -188,6 +191,97 @@ public interface FocusCamera {
     }
 
     /**
+     * Classes implementing this interface will be called when
+     * preview receives a new camera frame.
+     */
+    interface PreviewFrameListener {
+
+        /**
+         * Called when preview receives a new camera frame.
+         *
+         * @param frame the preview frame in the size and format of the preview
+         */
+        void onPreviewFrame(PreviewFrame frame);
+    }
+
+    /**
+     * Immutable preview frame data container.
+     */
+    final class PreviewFrame {
+
+        private final int format;
+        private final byte[] data;
+        private final int[] strides;
+        private final int width;
+        private final int height;
+
+        private PreviewFrame(byte[] data, int format, int width, int height, int[] strides) {
+            this.format = format;
+            this.data = data;
+            this.width = width;
+            this.height = height;
+            this.strides = strides;
+        }
+
+        /**
+         * Construct an instance from {@link YuvImage};
+         *
+         * @param yuvImage the image to borrow values from.
+         * @throws NullPointerException if {@link YuvImage} is null
+         */
+         static PreviewFrame valueOf(YuvImage yuvImage) {
+            if (yuvImage == null) {
+                throw new NullPointerException("yuvImage cannot be null");
+            }
+            return new PreviewFrame(
+                    yuvImage.getYuvData(),
+                    yuvImage.getYuvFormat(),
+                    yuvImage.getWidth(),
+                    yuvImage.getHeight(),
+                    yuvImage.getStrides()
+            );
+        }
+
+        /**
+         * @return The YUV format as defined in {@link ImageFormat}.
+         */
+        public int getFormat() {
+            return format;
+        }
+
+        /**
+         * In the case of more than one image plane, the image planes are
+         * concatenated into a single byte array.
+         *
+         * @return The raw YUV data.
+         */
+        public byte[] getData() {
+            return data;
+        }
+
+        /**
+         * @return The number of row bytes in each image plane.
+         */
+        public int[] getStrides() {
+            return strides;
+        }
+
+        /**
+         * @return The width of the image.
+         */
+        public int getWidth() {
+            return width;
+        }
+
+        /**
+         * @return The height of the the image.
+         */
+        public int getHeight() {
+            return height;
+        }
+    }
+
+    /**
      * Classes implementing this interface will be called whenever the camera
      * encountered an error.
      */
@@ -304,6 +398,12 @@ public interface FocusCamera {
      * camera changes to be either ready or not ready to take another picture.
      */
     void setReadyStateChangedListener(ReadyStateChangedListener listener);
+
+    /**
+     * Sets or replaces a listener that is called whenever the camera preview
+     * receives a new frame. Callbacks are invoked on the provided {@link Handler}
+     */
+    void setPreviewFrameListener(PreviewFrameListener listener, Handler handler);
 
     /**
      * Starts a preview stream and renders it to the given surface texture.

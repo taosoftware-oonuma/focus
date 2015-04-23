@@ -28,6 +28,9 @@ import android.os.Handler;
  */
 public abstract class Focus {
 
+    /** Set to true if Focus should force use legacy camera wrapper implementation **/
+    private static final boolean DEBUG_FORCE_LEGACY = true;
+
     /**
      * Attempts to open the camera facing the given direction with the given
      * capture size.
@@ -71,7 +74,7 @@ public abstract class Focus {
      */
     private static Focus create(Context context) throws FocusCameraException {
         Focus focus = null;
-        if (Utils.HAS_CAMERA_2_API) {
+        if (Utils.HAS_CAMERA_2_API && !DEBUG_FORCE_LEGACY) {
             focus = ModernFocusFactory.newInstance(context);
         }
         if (focus == null) {

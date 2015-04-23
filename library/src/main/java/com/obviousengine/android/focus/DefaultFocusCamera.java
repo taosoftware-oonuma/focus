@@ -343,18 +343,23 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     }
 
     @Override
+    public void setPreviewFrameListener(PreviewFrameListener listener, Handler handler) {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    @Override
     public void setViewfinderSize(int width, int height) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet.");
     }
 
     @Override
     public boolean isFlashSupported(boolean enhanced) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet.");
     }
 
     @Override
     public boolean isSupportingEnhancedMode() {
-        throw new UnsupportedOperationException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet.");
     }
 
     @Override
