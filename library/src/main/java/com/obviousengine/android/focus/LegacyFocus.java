@@ -48,11 +48,12 @@ final class LegacyFocus extends Focus {
     public void open(Facing facing, final Size pictureSize,
                      final OpenCallback openCallback, Handler handler) {
         final int cameraId = getCameraId(facing);
-        Log.i(TAG, "Opening Camera ID " + cameraId);
+        Log.d(TAG, "Opening Camera ID " + cameraId);
         cameraAgent.openCamera(handler, cameraId, new CameraAgent.CameraOpenCallback() {
 
             @Override
             public void onCameraOpened(CameraAgent.CameraProxy camera) {
+                Log.v(TAG, "onCameraOpened(" + camera + ")");
                 CameraDeviceInfo.Characteristics characteristics = camera.getCharacteristics();
                 FocusCamera focusCamera = new LegacyFocusCamera(context, cameraAgent,
                         camera, characteristics, pictureSize);
@@ -61,21 +62,25 @@ final class LegacyFocus extends Focus {
 
             @Override
             public void onCameraDisabled(int cameraId) {
+                Log.w(TAG, "onCameraDisabled(" + cameraId + ")");
                 openCallback.onCameraClosed();
             }
 
             @Override
             public void onDeviceOpenFailure(int cameraId, String info) {
+                Log.w(TAG, "onDeviceOpenFailure(" + cameraId + ", " + info + ")");
                 openCallback.onFailure();
             }
 
             @Override
             public void onDeviceOpenedAlready(int cameraId, String info) {
+                Log.w(TAG, "onDeviceOpenedAlready(" + cameraId + ", " + info + ")");
                 openCallback.onFailure();
             }
 
             @Override
             public void onReconnectionFailure(CameraAgent mgr, String info) {
+                Log.w(TAG, "onReconnectionFailure(" + cameraId + ")");
                 openCallback.onFailure();
             }
         });
