@@ -1,5 +1,6 @@
 package com.obviousengine.android.focus;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Point;
@@ -368,6 +369,7 @@ public final class Utils {
      * @param deviceOrientationDegrees the device orientation in degrees.
      * @return The JPEG orientation in degrees.
      */
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public static int getJpegRotation(int deviceOrientationDegrees,
                                       CameraCharacteristics characteristics) {
         if (deviceOrientationDegrees == OrientationEventListener.ORIENTATION_UNKNOWN) {

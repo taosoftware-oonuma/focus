@@ -481,6 +481,24 @@ public interface FocusCamera {
     void setZoom(float zoom);
 
     /**
+     * Clockwise angle through which the output image needs to be rotated
+     * to be upright on the device screen in its native orientation.
+     *
+     * @return Degrees of clockwise rotation; always a multiple of 90
+     */
+    int getSensorOrientation();
+
+    /**
+     * Gets the horizontal field of view in degrees.
+     */
+    float getHorizontalFov();
+
+    /**
+     * Gets the vertical field of view in degrees.
+     */
+    float getVerticalFov();
+
+    /**
      * Based on the selected picture size, this returns the best preview size.
      *
      * @param pictureSize the picture size as selected by the user. A camera

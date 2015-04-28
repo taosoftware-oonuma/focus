@@ -647,6 +647,21 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     }
 
     @Override
+    public int getSensorOrientation() {
+        return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+    }
+
+    @Override
+    public float getHorizontalFov() {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    @Override
+    public float getVerticalFov() {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    @Override
     public Size pickPreviewSize(Size pictureSize, Context context) {
         float pictureAspectRatio = pictureSize.getWidth() / (float) pictureSize.getHeight();
         return Utils.getOptimalPreviewSize(context, getSupportedSizes(), pictureAspectRatio);

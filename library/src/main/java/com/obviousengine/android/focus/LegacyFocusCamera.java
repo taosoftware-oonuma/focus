@@ -8,6 +8,7 @@ import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
+import android.hardware.Camera;
 import android.media.CameraProfile;
 import android.os.Build;
 import android.os.Handler;
@@ -56,8 +57,8 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     private boolean awbLockSupported;
     private boolean continuousFocusSupported;
 
-    /** Current display rotation **/
-    private int displayRotation;
+    private float horizontalFov;
+    private float verticalFov;
 
     /** Current zoom value. 1.0 is no zoom. */
     private float zoomValue = 1f;
@@ -117,6 +118,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         cameraHandler = new Handler(cameraThread.getLooper());
 
         initializeCapabilities();
+        initializeFovParameters();
 
         zoomValue = 1f;
         cameraSettings = this.cameraProxy.getSettings();
@@ -221,6 +223,21 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         return cameraCapabilities.getMaxZoomRatio();
     }
 
+    @Override
+    public int getSensorOrientation() {
+        return characteristics.getSensorOrientation();
+    }
+
+    @Override
+    public float getHorizontalFov() {
+        return horizontalFov;
+    }
+
+    @Override
+    public float getVerticalFov() {
+        return verticalFov;
+    }
+
     /**
      * Asynchronously sets up the capture session.
      *
@@ -250,7 +267,6 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
             cameraProxy.cancelAutoFocus();
         }
 
-        updateCameraOrientation();
         updateParametersPictureSize();
         setCameraParameters(UPDATE_PARAM_ALL);
         addPreviewCallbackBuffers(NUM_PREVIEW_BUFFERS);
@@ -311,6 +327,19 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         }
     }
 
+    private void initializeFovParameters() {
+        synchronized (cameraProxy) {
+            try {
+                Camera camera = cameraProxy.getCamera();
+                Camera.Parameters parameters = camera.getParameters();
+                horizontalFov = parameters.getHorizontalViewAngle();
+                verticalFov = parameters.getVerticalViewAngle();
+            } catch (RuntimeException e) {
+              Log.e(TAG, "RuntimeException reading legacy camera FOV parameters");
+            }
+        }
+    }
+
     /**
      * This method sets picture size parameters. Size parameters should only be
      * set when the preview is stopped, and so this method is only invoked in
@@ -355,12 +384,6 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     private void updateCameraParametersZoom() {
         if (zoomSupported) {
             cameraSettings.setZoomRatio(zoomValue);
-        }
-    }
-
-    public void updateCameraOrientation() {
-        if (displayRotation != Utils.getDisplayRotation(context)) {
-            setDisplayOrientation();
         }
     }
 
@@ -443,15 +466,6 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
             Log.w(TAG, "invalid exposure range: " + value);
         }
     }
-
-    private void setDisplayOrientation() {
-        displayRotation = Utils.getDisplayRotation(context);
-        // Change the camera display orientation
-        if (cameraProxy != null) {
-            cameraProxy.setDisplayOrientation(displayRotation);
-        }
-    }
-
 
     private void setCameraParameters(int updateSet) {
         if ((updateSet & UPDATE_PARAM_INITIALIZE) != 0) {

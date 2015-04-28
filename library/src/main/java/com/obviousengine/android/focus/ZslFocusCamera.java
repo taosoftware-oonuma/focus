@@ -1014,4 +1014,19 @@ final class ZslFocusCamera extends AbstractFocusCamera {
     private Rect cropRegionForZoom(float zoom) {
         return AutoFocusHelper.cropRegionForZoom(characteristics, zoom);
     }
+
+    @Override
+    public int getSensorOrientation() {
+        return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+    }
+
+    @Override
+    public float getHorizontalFov() {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    @Override
+    public float getVerticalFov() {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
 }
