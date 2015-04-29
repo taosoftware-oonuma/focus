@@ -57,53 +57,6 @@ public final class Utils {
     }
 
     /**
-     * Deletes the given directory and all it's contents, including
-     * sub-directories.
-     *
-     * @param directory The directory to delete.
-     * @return Whether The deletion was a success.
-     */
-    static boolean deleteDirectoryRecursively(File directory) {
-        if (!directory.exists() || !directory.isDirectory()) {
-            return false;
-        }
-
-        for (File entry : directory.listFiles()) {
-            if (entry.isDirectory()) {
-                deleteDirectoryRecursively(entry);
-            }
-            if (!entry.delete()) {
-                return false;
-            }
-        }
-        return directory.delete();
-    }
-
-    /**
-     * Reads the content of a {@code File} as a byte array.
-     *
-     * @param file The file to read
-     * @return  The content of the file
-     * @throws java.io.IOException if the content of the {@code File} could not be read
-     */
-    static byte[] readFileToByteArray(File file) throws IOException {
-        int length = (int) file.length();
-        byte[] data = new byte[length];
-        FileInputStream stream = new FileInputStream(file);
-        try {
-            int offset = 0;
-            while (offset < length) {
-                offset += stream.read(data, offset, length - offset);
-            }
-        } catch (IOException e) {
-            throw e;
-        } finally {
-            stream.close();
-        }
-        return data;
-    }
-
-    /**
      * Clamps x to between min and max (inclusive on both ends, x = min --> min,
      * x = max --> max).
      */
