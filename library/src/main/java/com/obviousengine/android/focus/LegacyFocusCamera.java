@@ -179,7 +179,6 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         surfaceTexture = null;
         isClosed = true;
         cameraAgent.closeCamera(cameraProxy, true);
-        cameraProxy.getCameraHandler().removeCallbacksAndMessages(null);
         if (Utils.isJellyBeanMr2OrHigher()) {
             cameraThread.quitSafely();
         } else {
