@@ -480,6 +480,10 @@ public interface FocusCamera {
      */
     void setZoom(float zoom);
 
+    void setAutoWhiteBalanceLock(boolean locked);
+
+    void setAutoExposureLock(boolean locked);
+
     /**
      * Clockwise angle through which the output image needs to be rotated
      * to be upright on the device screen in its native orientation.

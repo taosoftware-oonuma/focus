@@ -626,10 +626,11 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
 
     @Override
     public void triggerFocusAndMeterAtPoint(float nx, float ny) {
-        int sensorOrientation = characteristics.get(
-            CameraCharacteristics.SENSOR_ORIENTATION);
-        aERegions = AutoFocusHelper.aeRegionsForNormalizedCoord(nx, ny, cropRegion, sensorOrientation);
-        aFRegions = AutoFocusHelper.afRegionsForNormalizedCoord(nx, ny, cropRegion, sensorOrientation);
+        int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        aERegions = AutoFocusHelper.aeRegionsForNormalizedCoord(
+                nx, ny, cropRegion, sensorOrientation);
+        aFRegions = AutoFocusHelper.afRegionsForNormalizedCoord(
+                nx, ny, cropRegion, sensorOrientation);
 
         sendAutoFocusTriggerCaptureRequest(RequestTag.TAP_TO_FOCUS);
     }

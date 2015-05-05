@@ -6,6 +6,8 @@ import static com.android.ex.camera2.portability.CameraDeviceInfo.Characteristic
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
@@ -15,6 +17,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.view.Surface;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.android.ex.camera2.portability.CameraAgent;
@@ -33,6 +36,10 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     private static final int UPDATE_PARAM_INITIALIZE = 1;
     private static final int UPDATE_PARAM_ZOOM = 2;
     private static final int UPDATE_PARAM_PREFERENCE = 4;
+    private static final int UPDATE_PARAM_FOCUS = 8;
+    private static final int UPDATE_PARAM_METER = 16;
+    private static final int UPDATE_PARAM_AWB_LOCK = 32;
+    private static final int UPDATE_PARAM_AE_LOCK = 64;
     private static final int UPDATE_PARAM_ALL = -1;
 
     /** Number of buffers to provide for capturing preview stream.
@@ -40,6 +47,9 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
      * and the size of preview frames
      */
     private static final int NUM_PREVIEW_BUFFERS = 3;
+
+    private static final float AF_REGION_BOX = Settings3A.getAutoFocusRegionWidth();
+    private static final float AE_REGION_BOX = Settings3A.getMeteringRegionWidth();
 
     private final Context context;
     private final CameraAgent cameraAgent;
@@ -62,6 +72,16 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
     /** Current zoom value. 1.0 is no zoom. */
     private float zoomValue = 1f;
+
+    /** Current auto focus areas in legacy camera driver format **/
+    private List<Camera.Area> afAreas;
+    /** Current auto exposure areas in legacy camera driver format **/
+    private List<Camera.Area> aeAreas;
+
+    /** Current auto white balance lock state **/
+    private boolean awbLocked;
+    /** Current auto exposure lock state **/
+    private boolean aeLocked;
 
     /** The surface texture onto which to render the preview. */
     private SurfaceTexture surfaceTexture;
@@ -128,7 +148,21 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
     @Override
     public void triggerFocusAndMeterAtPoint(float nx, float ny) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        if (!focusAreaSupported && !meteringAreaSupported) {
+            return;
+        }
+
+        initializeFocusAreas(nx, ny);
+        initializeMeteringAreas(nx, ny);
+        setCameraParameters(UPDATE_PARAM_FOCUS);
+        setCameraParameters(UPDATE_PARAM_METER);
+        cameraProxy.cancelAutoFocus();
+        cameraProxy.autoFocus(cameraHandler, new CameraAgent.CameraAFCallback() {
+            @Override
+            public void onAutoFocus(boolean focused, CameraProxy camera) {
+                Log.d(TAG, "onAutoFocus() focused: " + focused);
+            }
+        });
     }
 
     @Override
@@ -220,6 +254,24 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     @Override
     public float getMaxZoom() {
         return cameraCapabilities.getMaxZoomRatio();
+    }
+
+    @Override
+    public void setZoom(float zoom) {
+        zoomValue = zoom;
+        setCameraParameters(UPDATE_PARAM_ZOOM);
+    }
+
+    @Override
+    public void setAutoWhiteBalanceLock(boolean locked) {
+        awbLocked = locked;
+        setCameraParameters(UPDATE_PARAM_AWB_LOCK);
+    }
+
+    @Override
+    public void setAutoExposureLock(boolean locked) {
+        aeLocked = locked;
+        setCameraParameters(UPDATE_PARAM_AE_LOCK);
     }
 
     @Override
@@ -339,6 +391,39 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         }
     }
 
+    private void initializeFocusAreas(float x, float y) {
+        if (afAreas == null) {
+            afAreas = new ArrayList<>();
+            afAreas.add(new Camera.Area(new Rect(), 1));
+        }
+
+        calculateCameraArea(x, y, AF_REGION_BOX, afAreas.get(0).rect);
+    }
+
+    private void initializeMeteringAreas(float x, float y) {
+        if (aeAreas == null) {
+            aeAreas = new ArrayList<>();
+            aeAreas.add(new Camera.Area(new Rect(), 1));
+        }
+
+        calculateCameraArea(x, y, AE_REGION_BOX, aeAreas.get(0).rect);
+    }
+
+    private void calculateCameraArea(float x, float y, float size, Rect rect) {
+        float left = Utils.clamp(x - size / 2f, 0f, 1f - size);
+        float top = Utils.clamp(y - size / 2f, 0f, 1f - size);
+        RectF rectF = new RectF(
+                toCameraDriverCoords(left),
+                toCameraDriverCoords(top),
+                toCameraDriverCoords(left + size),
+                toCameraDriverCoords(top + size));
+        Utils.rectFToRect(rectF, rect);
+    }
+
+    private static float toCameraDriverCoords(float v) {
+        return (float)((v - 0.5) * 2000);
+    }
+
     /**
      * This method sets picture size parameters. Size parameters should only be
      * set when the preview is stopped, and so this method is only invoked in
@@ -433,26 +518,26 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     private void setAutoExposureLockIfSupported() {
         if (aeLockSupported) {
-//            cameraSettings.setAutoExposureLock();
+            cameraSettings.setAutoExposureLock(aeLocked);
         }
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     private void setAutoWhiteBalanceLockIfSupported() {
         if (awbLockSupported) {
-//            cameraSettings.setAutoWhiteBalanceLock();
+            cameraSettings.setAutoWhiteBalanceLock(awbLocked);
         }
     }
 
     private void setFocusAreasIfSupported() {
         if (focusAreaSupported) {
-//            cameraSettings.setFocusAreas();
+            cameraSettings.setFocusAreas(afAreas);
         }
     }
 
     private void setMeteringAreasIfSupported() {
         if (meteringAreaSupported) {
-//            cameraSettings.setMeteringAreas();
+            cameraSettings.setMeteringAreas(aeAreas);
         }
     }
 
@@ -477,6 +562,22 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
         if ((updateSet & UPDATE_PARAM_PREFERENCE) != 0) {
             updateCameraParametersPreference();
+        }
+
+        if ((updateSet & UPDATE_PARAM_FOCUS) != 0) {
+            setFocusAreasIfSupported();
+        }
+
+        if ((updateSet & UPDATE_PARAM_METER) != 0) {
+            setMeteringAreasIfSupported();
+        }
+
+        if ((updateSet & UPDATE_PARAM_AWB_LOCK) != 0) {
+            setAutoWhiteBalanceLockIfSupported();
+        }
+
+        if ((updateSet & UPDATE_PARAM_AE_LOCK) != 0) {
+            setAutoExposureLockIfSupported();
         }
 
         cameraProxy.applySettings(cameraSettings);

@@ -123,4 +123,14 @@ abstract class AbstractFocusCamera implements FocusCamera {
     public void setZoom(float zoom) {
         // If not implemented, no-op.
     }
+
+    @Override
+    public void setAutoWhiteBalanceLock(boolean locked) {
+        // If not implemented, no-op.
+    }
+
+    @Override
+    public void setAutoExposureLock(boolean locked) {
+        // If not implemented, no-op.
+    }
 }
