@@ -27,6 +27,8 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 22
+        versionCode Integer.parseInt(VERSION_CODE)
+        versionName VERSION_NAME
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
     }
 
@@ -67,3 +69,5 @@ android {
         exclude 'LICENSE.txt'
     }
 }
+
+apply from: 'https://raw.github.com/chrisbanes/gradle-mvn-push/master/gradle-mvn-push.gradle'
