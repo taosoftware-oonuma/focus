@@ -1,10 +1,25 @@
 buildscript {
     dependencies {
         classpath rootProject.ext.androidPlugin
+        classpath rootProject.ext.semverPlugin
     }
 }
 
 apply plugin: 'com.android.library'
+apply plugin: 'com.github.ethankhall.semantic-versioning'
+
+project.version.with {
+    major = 0;
+    minor = 1;
+    patch = 0;
+    releaseBuild = true
+}
+
+project.ext.set("VERSION_NAME",
+        project.version.toString())
+
+project.ext.set("VERSION_CODE",
+        project.version.major * 10000 + project.version.minor * 1000 + project.version.patch * 100)
 
 dependencies {
     compile rootProject.ext.supportV4
@@ -27,7 +42,7 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 22
-        versionCode Integer.parseInt(VERSION_CODE)
+        versionCode VERSION_CODE
         versionName VERSION_NAME
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
     }
