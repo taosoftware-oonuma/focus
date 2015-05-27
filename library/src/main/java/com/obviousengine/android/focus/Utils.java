@@ -18,6 +18,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.android.ex.camera2.portability.CameraCapabilities;
@@ -162,32 +164,14 @@ public final class Utils {
     }
 
     public static Size getOptimalPreviewSize(Context context, Size[] sizes, double targetRatio) {
-        // TODO(andyhuibers): Don't hardcode this but use device's measurements.
-        final int MAX_ASPECT_HEIGHT = 1080;
+        List<Size> sizesList = Arrays.asList(sizes);
 
-        // Count sizes with getHeight <= 1080p to mimic camera1 api behavior.
-        int count = 0;
-        for (Size s : sizes) {
-            if (s.getHeight() <= MAX_ASPECT_HEIGHT) {
-                count++;
-            }
-        }
-        ArrayList<Size> camera1Sizes = new ArrayList<>(count);
-
-        // Set array of all sizes with getHeight <= 1080p
-        for (Size s : sizes) {
-            if (s.getHeight() <= MAX_ASPECT_HEIGHT) {
-                camera1Sizes.add(new Size(s.getWidth(), s.getHeight()));
-            }
-        }
-
-        int optimalIndex = getOptimalPreviewSizeIndex(context, camera1Sizes, targetRatio);
-
+        int optimalIndex = getOptimalPreviewSizeIndex(context, sizesList, targetRatio);
         if (optimalIndex == -1) {
             return null;
         }
 
-        Size optimal = camera1Sizes.get(optimalIndex);
+        Size optimal = sizesList.get(optimalIndex);
         for (Size s : sizes) {
             if (s.getWidth() == optimal.getWidth() && s.getHeight() == optimal.getHeight()) {
                 return s;
