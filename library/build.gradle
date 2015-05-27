@@ -10,7 +10,7 @@ apply plugin: 'com.github.ethankhall.semantic-versioning'
 
 project.version.with {
     major = 0;
-    minor = 1;
+    minor = 2;
     patch = 0;
     releaseBuild = true
 }
