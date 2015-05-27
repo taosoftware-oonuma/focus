@@ -1,9 +1,9 @@
-subprojects {
+allprojects {
     buildscript {
         repositories {
             mavenCentral()
             maven {
-                url 'http://public-maven.classmethod.info/release'
+                url "https://plugins.gradle.org/m2/"
             }
         }
     }
