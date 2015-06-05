@@ -663,6 +663,11 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     }
 
     @Override
+    public float[] getSupportedFocalLengths() {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    @Override
     public Size pickPreviewSize(Size pictureSize, Context context) {
         float pictureAspectRatio = pictureSize.getWidth() / (float) pictureSize.getHeight();
         return Utils.getOptimalPreviewSize(context, getSupportedSizes(), pictureAspectRatio);

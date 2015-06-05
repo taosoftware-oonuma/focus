@@ -20,6 +20,7 @@ import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
+import android.hardware.camera2.CaptureRequest;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Handler;
@@ -501,6 +502,11 @@ public interface FocusCamera {
      * Gets the vertical field of view in degrees.
      */
     float getVerticalFov();
+
+    /**
+     * Gets the list of supported focal lengths.
+     */
+    float[] getSupportedFocalLengths();
 
     /**
      * Based on the selected picture size, this returns the best preview size.

@@ -45,6 +45,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
 
+
 import android.support.v4.util.Pools;
 import android.view.Surface;
 
@@ -1027,6 +1028,11 @@ final class ZslFocusCamera extends AbstractFocusCamera {
 
     @Override
     public float getVerticalFov() {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    @Override
+    public float[] getSupportedFocalLengths() {
         throw new UnsupportedOperationException("Not implemented yet.");
     }
 }

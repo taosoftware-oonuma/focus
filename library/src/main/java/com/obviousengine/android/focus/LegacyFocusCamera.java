@@ -69,6 +69,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
     private float horizontalFov;
     private float verticalFov;
+    private float focalLength;
 
     /** Current zoom value. 1.0 is no zoom. */
     private float zoomValue = 1f;
@@ -289,6 +290,11 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         return verticalFov;
     }
 
+    @Override
+    public float[] getSupportedFocalLengths() {
+        return new float[]{focalLength};
+    }
+
     /**
      * Asynchronously sets up the capture session.
      *
@@ -385,6 +391,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
                 Camera.Parameters parameters = camera.getParameters();
                 horizontalFov = parameters.getHorizontalViewAngle();
                 verticalFov = parameters.getVerticalViewAngle();
+                focalLength = parameters.getFocalLength();
             } catch (RuntimeException e) {
               Log.e(TAG, "RuntimeException reading legacy camera FOV parameters");
             }
