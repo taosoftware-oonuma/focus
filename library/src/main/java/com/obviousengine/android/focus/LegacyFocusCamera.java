@@ -139,12 +139,11 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         cameraHandler = new Handler(cameraThread.getLooper());
 
         initializeCapabilities();
-        initializeFovParameters();
 
         zoomValue = 1f;
         cameraSettings = this.cameraProxy.getSettings();
 
-        setCameraParameters(UPDATE_PARAM_ALL);
+        updateSettings(UPDATE_PARAM_ALL);
     }
 
     @Override
@@ -153,10 +152,10 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
             return;
         }
 
-        initializeFocusAreas(nx, ny);
-        initializeMeteringAreas(nx, ny);
-        setCameraParameters(UPDATE_PARAM_FOCUS);
-        setCameraParameters(UPDATE_PARAM_METER);
+        updateFocusAreas(nx, ny);
+        updateMeteringAreas(nx, ny);
+        updateSettings(UPDATE_PARAM_FOCUS);
+        updateSettings(UPDATE_PARAM_METER);
         cameraProxy.cancelAutoFocus();
         cameraProxy.autoFocus(cameraHandler, new CameraAgent.CameraAFCallback() {
             @Override
@@ -226,8 +225,18 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
     @Override
     public Size[] getSupportedSizes() {
+        return getSupportedPreviewSizes();
+    }
+
+    private Size[] getSupportedPreviewSizes() {
         List<Size> sizes = Size.buildListFromPortabilitySizes(
                 cameraCapabilities.getSupportedPreviewSizes());
+        return sizes.toArray(new Size[sizes.size()]);
+    }
+
+    private Size[] getSupportedPictureSizes() {
+        List<Size> sizes = Size.buildListFromPortabilitySizes(
+                cameraCapabilities.getSupportedPhotoSizes());
         return sizes.toArray(new Size[sizes.size()]);
     }
 
@@ -248,8 +257,17 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
     @Override
     public Size pickPreviewSize(Size pictureSize, Context context) {
-        float pictureAspectRatio = pictureSize.getWidth() / (float) pictureSize.getHeight();
-        return Utils.getOptimalPreviewSize(context, getSupportedSizes(), pictureAspectRatio);
+        return getOptimalPreviewSize(pictureSize, context);
+    }
+
+    private Size getOptimalPreviewSize(Size preferredSize, Context context) {
+        float aspectRatio = preferredSize.getWidth() / (float) preferredSize.getHeight();
+        return Utils.getOptimalPreviewSize(context, getSupportedPreviewSizes(), aspectRatio);
+    }
+
+    private Size getOptimalPictureSize(Size preferredSize, Context context) {
+        float aspectRatio = preferredSize.getWidth() / (float) preferredSize.getHeight();
+        return Utils.getOptimalPreviewSize(context, getSupportedPictureSizes(), aspectRatio);
     }
 
     @Override
@@ -260,19 +278,19 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     @Override
     public void setZoom(float zoom) {
         zoomValue = zoom;
-        setCameraParameters(UPDATE_PARAM_ZOOM);
+        updateSettings(UPDATE_PARAM_ZOOM);
     }
 
     @Override
     public void setAutoWhiteBalanceLock(boolean locked) {
         awbLocked = locked;
-        setCameraParameters(UPDATE_PARAM_AWB_LOCK);
+        updateSettings(UPDATE_PARAM_AWB_LOCK);
     }
 
     @Override
     public void setAutoExposureLock(boolean locked) {
         aeLocked = locked;
-        setCameraParameters(UPDATE_PARAM_AE_LOCK);
+        updateSettings(UPDATE_PARAM_AE_LOCK);
     }
 
     @Override
@@ -324,8 +342,10 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
             cameraProxy.cancelAutoFocus();
         }
 
-        updateParametersPictureSize();
-        setCameraParameters(UPDATE_PARAM_ALL);
+        updateSettingsSize();
+        updateSettings(UPDATE_PARAM_ALL);
+        updateFovParameters();
+
         addPreviewCallbackBuffers(NUM_PREVIEW_BUFFERS);
 
         cameraProxy.setPreviewTexture(previewTexture);
@@ -384,21 +404,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         }
     }
 
-    private void initializeFovParameters() {
-        synchronized (cameraProxy) {
-            try {
-                Camera camera = cameraProxy.getCamera();
-                Camera.Parameters parameters = camera.getParameters();
-                horizontalFov = parameters.getHorizontalViewAngle();
-                verticalFov = parameters.getVerticalViewAngle();
-                focalLength = parameters.getFocalLength();
-            } catch (RuntimeException e) {
-              Log.e(TAG, "RuntimeException reading legacy camera FOV parameters");
-            }
-        }
-    }
-
-    private void initializeFocusAreas(float x, float y) {
+    private void updateFocusAreas(float x, float y) {
         if (afAreas == null) {
             afAreas = new ArrayList<>();
             afAreas.add(new Camera.Area(new Rect(), 1));
@@ -407,7 +413,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         calculateCameraArea(x, y, AF_REGION_BOX, afAreas.get(0).rect);
     }
 
-    private void initializeMeteringAreas(float x, float y) {
+    private void updateMeteringAreas(float x, float y) {
         if (aeAreas == null) {
             aeAreas = new ArrayList<>();
             aeAreas.add(new Camera.Area(new Rect(), 1));
@@ -432,32 +438,93 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     }
 
     /**
-     * This method sets picture size parameters. Size parameters should only be
+     * To get correct FOV values this should be called only after
+     * the preview and picture sizes are set.
+     */
+    private void updateFovParameters() {
+        synchronized (cameraProxy) {
+            try {
+                Camera camera = cameraProxy.getCamera();
+                Camera.Parameters parameters = camera.getParameters();
+                horizontalFov = parameters.getHorizontalViewAngle();
+                verticalFov = parameters.getVerticalViewAngle();
+                focalLength = parameters.getFocalLength();
+            } catch (RuntimeException e) {
+                Log.e(TAG, "RuntimeException reading legacy camera FOV parameters");
+            }
+        }
+    }
+
+    private void updateSettings(int updateSet) {
+        if ((updateSet & UPDATE_PARAM_INITIALIZE) != 0) {
+            updateSettingsInitialize();
+        }
+
+        if ((updateSet & UPDATE_PARAM_ZOOM) != 0) {
+            updateSettingsZoom();
+        }
+
+        if ((updateSet & UPDATE_PARAM_PREFERENCE) != 0) {
+            updateSettingsPreference();
+        }
+
+        if ((updateSet & UPDATE_PARAM_FOCUS) != 0) {
+            updateSettingsFocusAreas();
+        }
+
+        if ((updateSet & UPDATE_PARAM_METER) != 0) {
+            updateSettingsMeteringAreas();
+        }
+
+        if ((updateSet & UPDATE_PARAM_AWB_LOCK) != 0) {
+            setSettingsAutoWhiteBalanceLock();
+        }
+
+        if ((updateSet & UPDATE_PARAM_AE_LOCK) != 0) {
+            updateSettingsAutoExposureLock();
+        }
+
+        cameraProxy.applySettings(cameraSettings);
+        cameraSettings = cameraProxy.getSettings();
+    }
+
+    /**
+     * This method sets camera size parameters. Size parameters should only be
      * set when the preview is stopped, and so this method is only invoked in
      * {@link #setup(SurfaceTexture, CaptureReadyCallback)} just before starting the preview.
      */
-    private void updateParametersPictureSize() {
+    private void updateSettingsSize() {
         // Set a preview size that is closest to the viewfinder height and has
         // the right aspect ratio.
-        Size optimalSize = pickPreviewSize(pictureSize, context);
-        Size original = new Size(cameraSettings.getCurrentPreviewSize());
-        if (!optimalSize.equals(original)) {
-            Log.v(TAG, "setting preview size. optimal: " + optimalSize + "original: " + original);
+        Size optimalPreview = getOptimalPreviewSize(pictureSize, context);
+        Size originalPreview = new Size(cameraSettings.getCurrentPreviewSize());
+        if (!optimalPreview.equals(originalPreview)) {
+            Log.v(TAG, "setting preview size. optimal: "
+                       + optimalPreview + "original: " + originalPreview);
             cameraSettings.setPreviewSize(new com.android.ex.camera2.portability.Size(
-                    optimalSize.getWidth(), optimalSize.getHeight()));
-            cameraProxy.applySettings(cameraSettings);
-            cameraSettings = cameraProxy.getSettings();
+                    optimalPreview.getWidth(), optimalPreview.getHeight()));
         }
 
-        if (optimalSize.getWidth() != 0 && optimalSize.getHeight() != 0) {
+        Size optimalPicture = getOptimalPictureSize(pictureSize, context);
+        Size originalPicture = new Size(cameraSettings.getCurrentPhotoSize());
+        if (!optimalPicture.equals(originalPicture)) {
+            Log.v(TAG, "setting picture size. optimal: "
+                       + optimalPicture + "original: " + originalPicture);
+            cameraSettings.setPhotoSize(new com.android.ex.camera2.portability.Size(
+                    optimalPicture.getWidth(), optimalPicture.getHeight()));
+        }
+
+        if (optimalPicture.getWidth() != 0 && optimalPicture.getHeight() != 0) {
 //            Log.v(TAG, "updating aspect ratio");
             // TODO(eleventigers) update aspect ratio
 
         }
-        Log.d(TAG, "Preview size is " + optimalSize);
+
+        Log.d(TAG, "Preview size is " + optimalPreview);
+        Log.d(TAG, "Picture size is " + optimalPicture);
     }
 
-    private void updateCameraParametersInitialize() {
+    private void updateSettingsInitialize() {
         // Reset preview frame rate to the maximum because it may be lowered by
         // video camera application.
         int[] fpsRange = Utils.getPhotoPreviewFpsRange(cameraCapabilities);
@@ -472,47 +539,22 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         }
     }
 
-    private void updateCameraParametersZoom() {
-        if (zoomSupported) {
-            cameraSettings.setZoomRatio(zoomValue);
-        }
-    }
-
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-    private void updateAutoFocusMoveCallback() {
-        if (cameraSettings.getCurrentFocusMode() ==
-                CameraCapabilities.FocusMode.CONTINUOUS_PICTURE) {
-            cameraProxy.setAutoFocusMoveCallback(cameraHandler,
-                    (CameraAgent.CameraAFMoveCallback) autoFocusMoveCallback);
-        } else {
-            cameraProxy.setAutoFocusMoveCallback(null, null);
-        }
-    }
-
-    private void updateParametersPictureQuality() {
-        cameraSettings.setPhotoJpegCompressionQuality(JPEG_QUALITY);
-    }
-
-    private void updateParametersExposureCompensation() {
-        setExposureCompensation(0);
-    }
-
-    private void updateCameraParametersPreference() {
-        setAutoExposureLockIfSupported();
-        setAutoWhiteBalanceLockIfSupported();
-        setFocusAreasIfSupported();
-        setMeteringAreasIfSupported();
+    private void updateSettingsPreference() {
+        updateSettingsAutoExposureLock();
+        setSettingsAutoWhiteBalanceLock();
+        updateSettingsFocusAreas();
+        updateSettingsMeteringAreas();
 
 //        cameraSettings.setFocusMode(cameraSettings.getCurrentFocusMode());
 
         // Set JPEG quality.
-        updateParametersPictureQuality();
+        updateSettingsPictureQuality();
 
         // For the following settings, we need to check if the settings are
         // still supported by latest driver, if not, ignore the settings.
 
         // Set exposure compensation
-        updateParametersExposureCompensation();
+        updateSettingsExposureCompensation();
 
         // Set the scene mode: also sets flash and white balance.
 //        updateParametersSceneMode();
@@ -523,29 +565,54 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-    private void setAutoExposureLockIfSupported() {
+    private void updateSettingsAutoExposureLock() {
         if (aeLockSupported) {
             cameraSettings.setAutoExposureLock(aeLocked);
         }
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-    private void setAutoWhiteBalanceLockIfSupported() {
+    private void setSettingsAutoWhiteBalanceLock() {
         if (awbLockSupported) {
             cameraSettings.setAutoWhiteBalanceLock(awbLocked);
         }
     }
 
-    private void setFocusAreasIfSupported() {
+    private void updateSettingsFocusAreas() {
         if (focusAreaSupported) {
             cameraSettings.setFocusAreas(afAreas);
         }
     }
 
-    private void setMeteringAreasIfSupported() {
+    private void updateSettingsMeteringAreas() {
         if (meteringAreaSupported) {
             cameraSettings.setMeteringAreas(aeAreas);
         }
+    }
+
+    private void updateSettingsZoom() {
+        if (zoomSupported) {
+            cameraSettings.setZoomRatio(zoomValue);
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    private void updateAutoFocusMoveCallback() {
+        if (cameraSettings.getCurrentFocusMode() ==
+            CameraCapabilities.FocusMode.CONTINUOUS_PICTURE) {
+            cameraProxy.setAutoFocusMoveCallback(cameraHandler,
+                    (CameraAgent.CameraAFMoveCallback) autoFocusMoveCallback);
+        } else {
+            cameraProxy.setAutoFocusMoveCallback(null, null);
+        }
+    }
+
+    private void updateSettingsPictureQuality() {
+        cameraSettings.setPhotoJpegCompressionQuality(JPEG_QUALITY);
+    }
+
+    private void updateSettingsExposureCompensation() {
+        setExposureCompensation(0);
     }
 
     private void setExposureCompensation(int value) {
@@ -556,37 +623,5 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         } else {
             Log.w(TAG, "invalid exposure range: " + value);
         }
-    }
-
-    private void setCameraParameters(int updateSet) {
-        if ((updateSet & UPDATE_PARAM_INITIALIZE) != 0) {
-            updateCameraParametersInitialize();
-        }
-
-        if ((updateSet & UPDATE_PARAM_ZOOM) != 0) {
-            updateCameraParametersZoom();
-        }
-
-        if ((updateSet & UPDATE_PARAM_PREFERENCE) != 0) {
-            updateCameraParametersPreference();
-        }
-
-        if ((updateSet & UPDATE_PARAM_FOCUS) != 0) {
-            setFocusAreasIfSupported();
-        }
-
-        if ((updateSet & UPDATE_PARAM_METER) != 0) {
-            setMeteringAreasIfSupported();
-        }
-
-        if ((updateSet & UPDATE_PARAM_AWB_LOCK) != 0) {
-            setAutoWhiteBalanceLockIfSupported();
-        }
-
-        if ((updateSet & UPDATE_PARAM_AE_LOCK) != 0) {
-            setAutoExposureLockIfSupported();
-        }
-
-        cameraProxy.applySettings(cameraSettings);
     }
 }
