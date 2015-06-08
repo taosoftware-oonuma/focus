@@ -346,6 +346,8 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         updateSettings(UPDATE_PARAM_ALL);
         updateFovParameters();
 
+        cameraSettings = cameraProxy.getSettings();
+
         addPreviewCallbackBuffers(NUM_PREVIEW_BUFFERS);
 
         cameraProxy.setPreviewTexture(previewTexture);
@@ -485,7 +487,6 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         }
 
         cameraProxy.applySettings(cameraSettings);
-        cameraSettings = cameraProxy.getSettings();
     }
 
     /**
