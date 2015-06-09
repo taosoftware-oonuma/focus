@@ -504,8 +504,8 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         Size optimalPreview = getOptimalPreviewSize(pictureSize, context);
         Size originalPreview = new Size(cameraSettings.getCurrentPreviewSize());
         if (!optimalPreview.equals(originalPreview)) {
-            Log.v(TAG, "setting preview size. optimal: "
-                       + optimalPreview + "original: " + originalPreview);
+            Log.v(TAG, "Setting preview size. Optimal: "
+                       + optimalPreview + ", original: " + originalPreview);
             cameraSettings.setPreviewSize(new com.android.ex.camera2.portability.Size(
                     optimalPreview.getWidth(), optimalPreview.getHeight()));
         }
@@ -513,8 +513,8 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         Size optimalPicture = getOptimalPictureSize(pictureSize, context);
         Size originalPicture = new Size(cameraSettings.getCurrentPhotoSize());
         if (!optimalPicture.equals(originalPicture)) {
-            Log.v(TAG, "setting picture size. optimal: "
-                       + optimalPicture + "original: " + originalPicture);
+            Log.v(TAG, "Setting picture size. Optimal: "
+                       + optimalPicture + ", original: " + originalPicture);
             cameraSettings.setPhotoSize(new com.android.ex.camera2.portability.Size(
                     optimalPicture.getWidth(), optimalPicture.getHeight()));
         }
@@ -532,7 +532,8 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     private void updateSettingsInitialize() {
         // Reset preview frame rate to the maximum because it may be lowered by
         // video camera application.
-        int[] fpsRange = Utils.getPhotoPreviewFpsRange(cameraCapabilities);
+        int[] fpsRange = Utils.getMaxPreviewFpsRange(
+                cameraCapabilities.getSupportedPreviewFpsRange());
         if (fpsRange != null && fpsRange.length > 0) {
             cameraSettings.setPreviewFpsRange(fpsRange[0], fpsRange[1]);
         }

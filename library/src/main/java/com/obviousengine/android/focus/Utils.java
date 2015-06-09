@@ -30,7 +30,7 @@ public final class Utils {
 
     private static final Log.Tag TAG = new Log.Tag("Utils");
 
-    private final static int MAX_PREVIEW_FPS_TIMES_1000 = 400000;
+    private final static int MAX_PREVIEW_FPS_TIMES_1000 = 600000;
     private final static int PREFERRED_PREVIEW_FPS_TIMES_1000 = 30000;
 
     static final boolean HAS_AUTO_FOCUS_MOVE_CALLBACK = hasAutoFocusMoveCallback();
@@ -249,7 +249,7 @@ public final class Utils {
      * viewfinder output in dark conditions.
      *
      * @param capabilities Camera's capabilities.
-     * @return null if no appropiate fps range can't be found. Otherwise, return
+     * @return null if no appropriate fps range can't be found. Otherwise, return
      *         the right range.
      */
     static int[] getPhotoPreviewFpsRange(CameraCapabilities capabilities) {
@@ -274,7 +274,7 @@ public final class Utils {
             }
         }
 
-        // Find all the modes with the lowest min rate found above, the pick the
+        // Find all the modes with the lowest min rate found above, then pick the
         // one with highest max rate.
         int resultIndex = -1;
         int highestMaxRate = 0;
@@ -291,7 +291,7 @@ public final class Utils {
         if (resultIndex >= 0) {
             return frameRates.get(resultIndex);
         }
-        Log.e(TAG, "Can't find an appropiate frame rate range!");
+        Log.e(TAG, "Can't find an appropriate frame rate range!");
         return null;
     }
 
