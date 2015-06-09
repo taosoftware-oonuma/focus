@@ -141,8 +141,8 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         initializeCapabilities();
 
         zoomValue = 1f;
-        cameraSettings = this.cameraProxy.getSettings();
 
+        refreshSettings();
         updateSettings(UPDATE_PARAM_ALL);
     }
 
@@ -344,9 +344,9 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
         updateSettingsSize();
         updateSettings(UPDATE_PARAM_ALL);
-        updateFovParameters();
+        refreshSettings();
 
-        cameraSettings = cameraProxy.getSettings();
+        refreshFovParameters();
 
         addPreviewCallbackBuffers(NUM_PREVIEW_BUFFERS);
 
@@ -443,7 +443,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
      * To get correct FOV values this should be called only after
      * the preview and picture sizes are set.
      */
-    private void updateFovParameters() {
+    private void refreshFovParameters() {
         synchronized (cameraProxy) {
             try {
                 Camera camera = cameraProxy.getCamera();
@@ -455,6 +455,10 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
                 Log.e(TAG, "RuntimeException reading legacy camera FOV parameters");
             }
         }
+    }
+
+    private void refreshSettings() {
+        cameraSettings = cameraProxy.getSettings();
     }
 
     private void updateSettings(int updateSet) {
