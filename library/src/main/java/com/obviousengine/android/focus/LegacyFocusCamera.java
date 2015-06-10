@@ -19,6 +19,7 @@ import android.view.Surface;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.android.ex.camera2.portability.CameraAgent;
 import com.android.ex.camera2.portability.CameraCapabilities;
@@ -88,7 +89,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     private SurfaceTexture surfaceTexture;
 
     /** Whether closing of this device has been requested. */
-    private volatile boolean isClosed = false;
+    private volatile AtomicBoolean isClosed = new AtomicBoolean();
 
     /**
      * Thread on which high-priority camera operations, such as grabbing preview
@@ -178,11 +179,15 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
     @Override
     public void startPreview(Surface surface, CaptureReadyCallback listener) {
-       throw new UnsupportedOperationException("Not implemented yet.");
+       throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
     public void setPreviewFrameListener(PreviewFrameListener listener, Handler handler) {
+        if (isClosed.get()) {
+            Log.w(TAG, "Not setting listener since camera is closed");
+            return;
+        }
         previewFrameListener = listener;
         cameraProxy.setPreviewDataCallbackWithBuffer(handler, previewDataCallback);
     }
@@ -205,14 +210,14 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     @Override
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     public void close(CloseCallback closeCallback) {
-        if (isClosed) {
+        if (isClosed.get()) {
             Log.w(TAG, "Camera is already closed.");
             return;
         }
         cameraProxy.stopPreview();
         surfaceTexture = null;
-        isClosed = true;
-        cameraAgent.closeCamera(cameraProxy, false);
+        isClosed.set(true);
+        cameraAgent.closeCamera(cameraProxy, true);
         if (Utils.isJellyBeanMr2OrHigher()) {
             cameraThread.quitSafely();
         } else {
@@ -361,7 +366,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     }
 
     private void addPreviewCallbackBuffer(byte[] buffer) {
-        if (!isClosed) {
+        if (!isClosed.get()) {
             cameraProxy.addCallbackBuffer(buffer);
         }
     }
@@ -377,7 +382,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     }
 
     private void previewFrameDispatcher(byte[] data) {
-        if (!isClosed && previewFrameListener != null) {
+        if (!isClosed.get() && previewFrameListener != null) {
             com.android.ex.camera2.portability.Size previewSize =
                     cameraSettings.getCurrentPreviewSize();
             int width = previewSize.width();
