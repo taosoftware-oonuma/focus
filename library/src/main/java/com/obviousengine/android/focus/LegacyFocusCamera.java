@@ -551,7 +551,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
             }
         }
 
-        cameraSettings.setRecordingHintEnabled(false);
+        cameraSettings.setRecordingHintEnabled(true);
 
         if (cameraCapabilities.supports(CameraCapabilities.Feature.VIDEO_STABILIZATION)) {
             cameraSettings.setVideoStabilization(false);
