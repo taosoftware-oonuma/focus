@@ -537,10 +537,18 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     private void updateSettingsInitialize() {
         // Reset preview frame rate to the maximum because it may be lowered by
         // video camera application.
-        int[] fpsRange = Utils.getMaxPreviewFpsRange(
+        int[] supportedRange = Utils.getMaxPreviewFpsRange(
                 cameraCapabilities.getSupportedPreviewFpsRange());
-        if (fpsRange != null && fpsRange.length > 0) {
-            cameraSettings.setPreviewFpsRange(fpsRange[0], fpsRange[1]);
+
+        if (supportedRange.length > 0) {
+            cameraSettings.setPreviewFpsRange(supportedRange[0], supportedRange[1]);
+            if (Utils.SHOULD_FORCE_HIGHEST_PREVIEW_FPS && supportedRange[0] != supportedRange[1]) {
+                int[] highRange = new int[]{supportedRange[1], supportedRange[1]};
+                if (unsafeSetUnsupportedPreviewFpsRange(cameraProxy, highRange)) {
+                    // camera did not crash, store high fps in settings
+                    cameraSettings.setPreviewFpsRange(highRange[0], highRange[1]);
+                }
+            }
         }
 
         cameraSettings.setRecordingHintEnabled(false);
@@ -633,6 +641,29 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
             cameraSettings.setExposureCompensationIndex(value);
         } else {
             Log.w(TAG, "invalid exposure range: " + value);
+        }
+    }
+
+    /**
+     * WARNING: untested, horrible hack below.
+     *
+     * Sidesteps the given portability cameraProxy and tries to set preview fps range
+     * to something that camera might not support.
+     */
+    private static boolean unsafeSetUnsupportedPreviewFpsRange(CameraProxy proxy,
+                                                               int[] unsafeRange) {
+        try {
+            Log.w(TAG, "Trying to set unsupported fps range: " +
+                    "[" + unsafeRange[0] + "-" + unsafeRange[1] + "]");
+            // HACK ALERT
+            Camera camera = proxy.getCamera();
+            Camera.Parameters parameters = camera.getParameters();
+            parameters.setPreviewFpsRange(unsafeRange[0], unsafeRange[1]);
+            camera.setParameters(parameters);
+            return true;
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Seting unsupported fps range failed: " + e);
+            return false;
         }
     }
 }

@@ -33,6 +33,8 @@ public final class Utils {
     private final static int MAX_PREVIEW_FPS_TIMES_1000 = 600000;
     private final static int PREFERRED_PREVIEW_FPS_TIMES_1000 = 30000;
 
+    static final boolean SHOULD_FORCE_HIGHEST_PREVIEW_FPS = true;
+
     static final boolean HAS_AUTO_FOCUS_MOVE_CALLBACK = hasAutoFocusMoveCallback();
 
     static final boolean IS_NEXUS_4 = "mako".equalsIgnoreCase(Build.DEVICE);
