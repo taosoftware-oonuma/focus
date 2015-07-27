@@ -509,6 +509,16 @@ public interface FocusCamera {
     float[] getSupportedFocalLengths();
 
     /**
+     * Dumps the current settings of the camera device.
+     *
+     * <p>The content varies based on the underlying camera API settings
+     * implementation.</p>
+     *
+     * @return The content of the device settings represented by a string.
+     */
+    String dumpDeviceSettings();
+
+    /**
      * Based on the selected picture size, this returns the best preview size.
      *
      * @param pictureSize the picture size as selected by the user. A camera

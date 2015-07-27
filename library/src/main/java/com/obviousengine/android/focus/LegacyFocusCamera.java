@@ -318,6 +318,11 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         return new float[]{focalLength};
     }
 
+    @Override
+    public String dumpDeviceSettings() {
+        return cameraProxy.dumpDeviceSettings();
+    }
+
     /**
      * Asynchronously sets up the capture session.
      *

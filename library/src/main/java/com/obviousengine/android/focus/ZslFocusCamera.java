@@ -793,8 +793,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
                         Utils.getJpegRotation(params.orientation, characteristics));
             }
 
-            captureSession.capture(builder.build(), captureManager,
-                    cameraHandler);
+            captureSession.capture(builder.build(), captureManager, cameraHandler);
             return true;
         } catch (CameraAccessException e) {
             Log.v(TAG, "Could not execute single still capture request.", e);
@@ -1033,6 +1032,11 @@ final class ZslFocusCamera extends AbstractFocusCamera {
 
     @Override
     public float[] getSupportedFocalLengths() {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+
+    @Override
+    public String dumpDeviceSettings() {
         throw new UnsupportedOperationException("Not implemented yet.");
     }
 }
