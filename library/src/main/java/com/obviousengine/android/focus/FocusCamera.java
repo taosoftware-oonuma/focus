@@ -20,7 +20,6 @@ import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
-import android.hardware.camera2.CaptureRequest;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Handler;
@@ -241,6 +240,40 @@ public interface FocusCamera {
                     yuvImage.getHeight(),
                     yuvImage.getStrides()
             );
+        }
+
+        /**
+         * Construct an instance from the given frame parameters.
+         *
+         * @param data The raw frame data.
+         * @param format The YUV format as defined in {@link ImageFormat}.
+         * @param width The width of the image.
+         * @param height The height of the image.
+         */
+        public static PreviewFrame create(byte[] data, int format, int width, int height) {
+            if (data == null) {
+                throw new NullPointerException("Data cannot be null");
+            }
+
+            if (width <= 0  || height <= 0) {
+                throw new IllegalArgumentException("Width and height must be larger than 0");
+            }
+
+            int[] strides = calculateStrides(width, format);
+
+            return new PreviewFrame(data, format, width, height, strides);
+        }
+
+        private static int[] calculateStrides(int width, int format) {
+            switch (format) {
+                case ImageFormat.NV21:
+                    return new int[] {width, width};
+                case ImageFormat.YUY2:
+                    return  new int[] {width * 2};
+                default:
+                    throw new IllegalArgumentException("Only ImageFormat.NV21 and ImageFormat.YUY2 "
+                                                               + "supported for now");
+            }
         }
 
         /**

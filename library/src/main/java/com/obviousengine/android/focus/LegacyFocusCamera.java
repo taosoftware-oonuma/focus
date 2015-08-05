@@ -393,8 +393,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
             int width = previewSize.width();
             int height = previewSize.height();
             int format = cameraSettings.getCurrentPreviewFormat();
-            previewFrameListener.onPreviewFrame(PreviewFrame.valueOf(
-                    new YuvImage(data, format, width, height, null)));
+            previewFrameListener.onPreviewFrame(PreviewFrame.create(data, format, width, height));
         }
     }
 
