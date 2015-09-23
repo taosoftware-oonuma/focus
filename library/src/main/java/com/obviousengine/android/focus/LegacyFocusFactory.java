@@ -11,6 +11,7 @@ import com.android.ex.camera2.portability.CameraAgentFactory;
 final class LegacyFocusFactory {
 
     public static Focus newInstance(Context context) throws FocusCameraException {
+        CameraAgentFactory.recycle(CameraAgentFactory.CameraApi.API_1);
         CameraAgent agent = CameraAgentFactory
                 .getAndroidCameraAgent(context, CameraAgentFactory.CameraApi.API_1);
         return new LegacyFocus(context, agent);
