@@ -40,6 +40,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
 import android.view.Surface;
 
 import java.io.File;
@@ -145,10 +146,11 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     /**
      * Common listener for preview frame metadata.
      */
-    private final CameraCaptureSession.CaptureCallback mAutoFocusStateListener = new
+    private final CameraCaptureSession.CaptureCallback autoFocusStateListener = new
             CameraCaptureSession.CaptureCallback() {
                 @Override
-                public void onCaptureStarted(CameraCaptureSession session, CaptureRequest request,
+                public void onCaptureStarted(@NonNull CameraCaptureSession session,
+                                             @NonNull CaptureRequest request,
                                              long timestamp, long frameNumber) {
                     if (request.getTag() == RequestTag.CAPTURE && lastPictureCallback != null) {
                         lastPictureCallback.onQuickExpose();
@@ -158,17 +160,17 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                 // AF state information is sometimes available 1 frame before
                 // onCaptureCompleted(), so we take advantage of that.
                 @Override
-                public void onCaptureProgressed(CameraCaptureSession session,
-                        CaptureRequest request,
-                        CaptureResult partialResult) {
+                public void onCaptureProgressed(@NonNull CameraCaptureSession session,
+                                                @NonNull CaptureRequest request,
+                                                @NonNull CaptureResult partialResult) {
                     autofocusStateChangeDispatcher(partialResult);
                     super.onCaptureProgressed(session, request, partialResult);
                 }
 
                 @Override
-                public void onCaptureCompleted(CameraCaptureSession session,
-                        CaptureRequest request,
-                        TotalCaptureResult result) {
+                public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                               @NonNull CaptureRequest request,
+                                               @NonNull TotalCaptureResult result) {
                     autofocusStateChangeDispatcher(result);
                     // This checks for a HAL implementation error where TotalCaptureResult
                     // is missing CONTROL_AF_STATE.  This should not happen.
@@ -211,7 +213,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
 
     /** Receives the normal captured images. */
     private final ImageReader captureImageReader;
-    ImageReader.OnImageAvailableListener captureImageListener =
+    private final ImageReader.OnImageAvailableListener captureImageListener =
             new ImageReader.OnImageAvailableListener() {
                 @Override
                 public void onImageAvailable(ImageReader reader) {
@@ -319,7 +321,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                         "capture.txt"));
             }
 
-            captureSession.capture(request, mAutoFocusStateListener, cameraHandler);
+            captureSession.capture(request, autoFocusStateListener, cameraHandler);
         } catch (CameraAccessException e) {
             Timber.e(e, "Could not access camera for still image capture.");
             broadcastReadyState(true);
@@ -479,12 +481,12 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
 
             device.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
                 @Override
-                public void onConfigureFailed(CameraCaptureSession session) {
+                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
                     listener.onSetupFailed();
                 }
 
                 @Override
-                public void onConfigured(CameraCaptureSession session) {
+                public void onConfigured(@NonNull CameraCaptureSession session) {
                     captureSession = session;
                     aFRegions = ZERO_WEIGHT_3A_REGION;
                     aERegions = ZERO_WEIGHT_3A_REGION;
@@ -499,7 +501,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                 }
 
                 @Override
-                public void onClosed(CameraCaptureSession session) {
+                public void onClosed(@NonNull CameraCaptureSession session) {
                     super.onClosed(session);
                     if (closeCallback != null) {
                         closeCallback.onCameraClosed();
@@ -543,7 +545,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             builder.addTarget(previewSurface);
             builder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
             addBaselineCaptureKeysToRequest(builder);
-            captureSession.setRepeatingRequest(builder.build(), mAutoFocusStateListener,
+            captureSession.setRepeatingRequest(builder.build(), autoFocusStateListener,
                     cameraHandler);
             Timber.v("Sent repeating Preview request, zoom = %.2f", zoomValue);
             return true;
@@ -567,7 +569,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             addBaselineCaptureKeysToRequest(builder);
             builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
             builder.setTag(tag);
-            captureSession.capture(builder.build(), mAutoFocusStateListener, cameraHandler);
+            captureSession.capture(builder.build(), autoFocusStateListener, cameraHandler);
 
             // Step 2: Call repeatingPreview to update controlAFMode.
             repeatingPreview(tag);

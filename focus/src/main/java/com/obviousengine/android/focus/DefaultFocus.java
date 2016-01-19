@@ -27,6 +27,7 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.util.DisplayMetrics;
 
 import timber.log.Timber;
@@ -69,7 +70,7 @@ final class DefaultFocus extends Focus {
                 private boolean isFirstCallback = true;
 
                 @Override
-                public void onDisconnected(CameraDevice device) {
+                public void onDisconnected(@NonNull CameraDevice device) {
                     if (isFirstCallback) {
                         isFirstCallback = false;
                         // If the camera is disconnected before it is opened
@@ -80,7 +81,7 @@ final class DefaultFocus extends Focus {
                 }
 
                 @Override
-                public void onClosed(CameraDevice device) {
+                public void onClosed(@NonNull CameraDevice device) {
                     if (isFirstCallback) {
                         isFirstCallback = false;
                         openCallback.onCameraClosed();
@@ -88,7 +89,7 @@ final class DefaultFocus extends Focus {
                 }
 
                 @Override
-                public void onError(CameraDevice device, int error) {
+                public void onError(@NonNull CameraDevice device, int error) {
                     if (isFirstCallback) {
                         isFirstCallback = false;
                         device.close();
@@ -97,7 +98,7 @@ final class DefaultFocus extends Focus {
                 }
 
                 @Override
-                public void onOpened(CameraDevice device) {
+                public void onOpened(@NonNull CameraDevice device) {
                     if (isFirstCallback) {
                         isFirstCallback = false;
                         try {
