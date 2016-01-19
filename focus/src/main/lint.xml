@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <issue id="all">
+        <ignore regexp="com/android/ex/camera2.*\.java" />
+    </issue>
+</lint>

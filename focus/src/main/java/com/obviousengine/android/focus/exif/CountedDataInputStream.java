@@ -75,7 +75,7 @@ class CountedDataInputStream extends FilterInputStream {
     public void skipTo(long target) throws IOException {
         long cur = mCount;
         long diff = target - cur;
-        assert(diff >= 0);
+        if (diff < 0) throw new AssertionError();
         skipOrThrow(diff);
     }
 

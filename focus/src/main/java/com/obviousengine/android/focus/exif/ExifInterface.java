@@ -43,6 +43,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -1247,7 +1248,7 @@ public class ExifInterface {
         if (l == null || l.length <= 0) {
             return null;
         }
-        return new Long(l[0]);
+        return l[0];
     }
 
     /**
@@ -1266,7 +1267,7 @@ public class ExifInterface {
         if (l == null || l.length <= 0) {
             return null;
         }
-        return new Integer(l[0]);
+        return l[0];
     }
 
     /**
@@ -1285,7 +1286,7 @@ public class ExifInterface {
         if (l == null || l.length <= 0) {
             return null;
         }
-        return new Byte(l[0]);
+        return l[0];
     }
 
     /**
@@ -1946,8 +1947,10 @@ public class ExifInterface {
 
     private static final String GPS_DATE_FORMAT_STR = "yyyy:MM:dd";
     private static final String DATETIME_FORMAT_STR = "yyyy:MM:dd kk:mm:ss";
-    private final DateFormat mDateTimeStampFormat = new SimpleDateFormat(DATETIME_FORMAT_STR);
-    private final DateFormat mGPSDateStampFormat = new SimpleDateFormat(GPS_DATE_FORMAT_STR);
+    private final DateFormat mDateTimeStampFormat = new SimpleDateFormat(
+            DATETIME_FORMAT_STR, Locale.US);
+    private final DateFormat mGPSDateStampFormat = new SimpleDateFormat(
+            GPS_DATE_FORMAT_STR, Locale.US);
     private final Calendar mGPSTimeStampCalendar = Calendar
             .getInstance(TimeZone.getTimeZone("UTC"));
 

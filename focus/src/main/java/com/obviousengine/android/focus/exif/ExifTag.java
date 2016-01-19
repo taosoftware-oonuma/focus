@@ -20,6 +20,7 @@ import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * This class stores information of an EXIF tag. For more information about
@@ -102,7 +103,8 @@ public class ExifTag {
     // Value offset in exif header.
     private int mOffset;
 
-    private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("yyyy:MM:dd kk:mm:ss");
+    private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat(
+            "yyyy:MM:dd kk:mm:ss", Locale.US);
 
     /**
      * Returns true if the given IFD is a valid IFD.

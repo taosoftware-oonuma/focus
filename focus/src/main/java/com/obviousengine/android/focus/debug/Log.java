@@ -16,9 +16,11 @@
 
 package com.obviousengine.android.focus.debug;
 
+import android.annotation.SuppressLint;
 import android.content.res.Configuration;
 import android.os.Build;
 
+@SuppressLint("LogTagMismatch")
 public final class Log {
 
     /**

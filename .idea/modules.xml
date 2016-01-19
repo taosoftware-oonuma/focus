@@ -3,7 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/focus.iml" filepath="$PROJECT_DIR$/focus.iml" />
-      <module fileurl="file://$PROJECT_DIR$/library/library.iml" filepath="$PROJECT_DIR$/library/library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/focus-root.iml" filepath="$PROJECT_DIR$/focus-root.iml" />
     </modules>
   </component>
 </project>
