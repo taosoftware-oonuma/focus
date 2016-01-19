@@ -16,7 +16,6 @@
 
 package com.obviousengine.android.focus;
 
-import static com.obviousengine.android.focus.debug.Log.Tag;
 import static com.obviousengine.android.focus.CaptureSession.OnImageSavedListener;
 
 import android.annotation.TargetApi;
@@ -50,10 +49,11 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.obviousengine.android.focus.debug.Log;
 import com.obviousengine.android.focus.exif.ExifInterface;
 import com.obviousengine.android.focus.exif.ExifTag;
 import com.obviousengine.android.focus.exif.Rational;
+
+import timber.log.Timber;
 
 /**
  * {@link FocusCamera} implementation directly on top of the Camera2 API.
@@ -72,8 +72,6 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             this.session = session;
         }
     }
-
-    private static final Tag TAG = new Tag("DefaultFocusCamera");
 
     /** If true, will write data about each capture request to disk. */
     private static final boolean DEBUG_WRITE_CAPTURE_DATA = false;
@@ -251,7 +249,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                 pictureSize.getHeight(),
                 CAPTURE_IMAGE_FORMAT, 2);
         captureImageReader.setOnImageAvailableListener(captureImageListener, cameraHandler);
-        Log.d(TAG, "New Camera2 based DefaultFocusCamera created.");
+        Timber.d("New Camera2 based DefaultFocusCamera created.");
     }
 
     /**
@@ -279,7 +277,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
         // This class implements a very simple version of AF, which
         // only delays capture if the lens is scanning.
         if (lastResultAFState == AutoFocusState.ACTIVE_SCAN) {
-            Log.v(TAG, "Waiting until scan is done before taking shot.");
+            Timber.v("Waiting until scan is done before taking shot.");
             takePictureWhenLensIsStopped = true;
         } else {
             // We could do CONTROL_AF_TRIGGER_START and wait until lens locks,
@@ -293,7 +291,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
      */
     public void takePictureNow(PhotoCaptureParameters params, CaptureSession session) {
         long dt = SystemClock.uptimeMillis() - takePictureStartMillis;
-        Log.v(TAG, "Taking shot with extra AF delay of " + dt + " ms.");
+        Timber.v("Taking shot with extra AF delay of " + dt + " ms.");
         // This will throw a RuntimeException, if parameters are not sane.
         params.checkSanity();
         try {
@@ -316,14 +314,14 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             if (DEBUG_WRITE_CAPTURE_DATA) {
                 final String debugDataDir = makeDebugDir(params.debugDataFolder,
                         "normal_capture_debug");
-                Log.i(TAG, "Writing capture data to: " + debugDataDir);
+                Timber.i("Writing capture data to: %s", debugDataDir);
                 CaptureDataSerializer.toFile("Normal Capture", request, new File(debugDataDir,
                         "capture.txt"));
             }
 
             captureSession.capture(request, mAutoFocusStateListener, cameraHandler);
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Could not access camera for still image capture.");
+            Timber.e(e, "Could not access camera for still image capture.");
             broadcastReadyState(true);
             params.callback.onPictureTakenFailed();
             return;
@@ -365,13 +363,13 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     @Override
     public void close(CloseCallback closeCallback) {
         if (isClosed) {
-            Log.w(TAG, "Camera is already closed.");
+            Timber.w("Camera is already closed.");
             return;
         }
         try {
             captureSession.abortCaptures();
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Could not abort captures in progress.");
+            Timber.e(e, "Could not abort captures in progress.");
         }
         isClosed = true;
         this.closeCallback = closeCallback;
@@ -434,7 +432,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                 exif.setTag(directionTag);
             }
         } catch (IOException e) {
-            Log.w(TAG, "Could not read exif from gcam jpeg", e);
+            Timber.w(e, "Could not read exif from gcam jpeg");
             exif = null;
         }
         session.saveAndFinish(jpegData, width, height, rotation, exif,
@@ -509,7 +507,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                 }
             }, cameraHandler);
         } catch (CameraAccessException ex) {
-            Log.e(TAG, "Could not set up capture session", ex);
+            Timber.e(ex, "Could not set up capture session");
             listener.onSetupFailed();
         }
     }
@@ -547,10 +545,10 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             addBaselineCaptureKeysToRequest(builder);
             captureSession.setRepeatingRequest(builder.build(), mAutoFocusStateListener,
                     cameraHandler);
-            Log.v(TAG, String.format("Sent repeating Preview request, zoom = %.2f", zoomValue));
+            Timber.v("Sent repeating Preview request, zoom = %.2f", zoomValue);
             return true;
         } catch (CameraAccessException ex) {
-            Log.e(TAG, "Could not access camera setting up preview.", ex);
+            Timber.e(ex, "Could not access camera setting up preview.");
             return false;
         }
     }
@@ -575,7 +573,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             repeatingPreview(tag);
             resumeContinuousAFAfterDelay(FOCUS_HOLD_MILLIS);
         } catch (CameraAccessException ex) {
-            Log.e(TAG, "Could not execute preview request.", ex);
+            Timber.e(ex, "Could not execute preview request.");
         }
     }
 

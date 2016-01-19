@@ -26,7 +26,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.os.Build;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 /**
  * Helper class to implement auto focus and 3A in camera2-based
@@ -34,8 +34,6 @@ import com.obviousengine.android.focus.debug.Log;
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 final class AutoFocusHelper {
-
-    private static final Log.Tag TAG = new Log.Tag("FocusCameraAFHelp");
 
     /** camera2 API metering region weight. */
     private static final int CAMERA2_REGION_WEIGHT = (int)
@@ -81,7 +79,7 @@ final class AutoFocusHelper {
         boolean missing = result.get(CaptureResult.CONTROL_AF_STATE) == null;
         if (missing) {
             // throw new IllegalStateException("CaptureResult missing CONTROL_AF_STATE.");
-            Log.e(TAG, "\n!!!! TotalCaptureResult missing CONTROL_AF_STATE. !!!!\n ");
+            Timber.e("\n!!!! TotalCaptureResult missing CONTROL_AF_STATE. !!!!\n ");
         }
         return !missing;
     }
@@ -94,7 +92,7 @@ final class AutoFocusHelper {
         boolean missing = result.get(CaptureResult.LENS_STATE) == null;
         if (missing) {
             // throw new IllegalStateException("CaptureResult missing LENS_STATE.");
-            Log.e(TAG, "\n!!!! TotalCaptureResult missing LENS_STATE. !!!!\n ");
+            Timber.e("\n!!!! TotalCaptureResult missing LENS_STATE. !!!!\n ");
         }
         return !missing;
     }
@@ -107,12 +105,12 @@ final class AutoFocusHelper {
 
         Object tag = result.getRequest().getTag();
 
-        Log.v(TAG, String.format("af_state:%-17s  lens_foc_dist:%.3f  lens_state:%-10s  %s",
+        Timber.v("af_state:%-17s  lens_foc_dist:%.3f  lens_state:%-10s  %s",
                 controlAFStateToString(result.get(CaptureResult.CONTROL_AF_STATE)),
                 result.get(CaptureResult.LENS_FOCUS_DISTANCE),
                 lensStateToString(result.get(CaptureResult.LENS_STATE)),
                 (tag == null) ? "" : "[" + tag +"]"
-        ));
+        );
     }
 
     /**

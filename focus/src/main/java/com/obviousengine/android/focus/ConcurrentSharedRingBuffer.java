@@ -16,8 +16,6 @@
 
 package com.obviousengine.android.focus;
 
-import static com.obviousengine.android.focus.debug.Log.Tag;
-
 import android.os.Handler;
 import android.util.Pair;
 
@@ -38,7 +36,6 @@ import java.util.concurrent.Semaphore;
  * there are not enough unpinned elements which can be removed. <br>
  */
 final class ConcurrentSharedRingBuffer<E> {
-    private static final Tag TAG = new Tag("CncrrntShrdRingBuf");
 
     /**
      * Callback interface for swapping elements at the head of the buffer.
@@ -387,7 +384,7 @@ final class ConcurrentSharedRingBuffer<E> {
      * Attempts to pin the greatest element for which {@code selector} returns
      * true. <br>
      *
-     * @see #pinGreatest
+     * @see #tryPinGreatest()
      */
     public Pair<Long, E> tryPinGreatestSelected(Selector<E> selector) {
         // (Quickly) get the list of elements to search through.

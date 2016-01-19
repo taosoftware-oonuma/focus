@@ -16,7 +16,6 @@
 
 package com.obviousengine.android.focus;
 
-import static com.obviousengine.android.focus.debug.Log.Tag;
 import static com.obviousengine.android.focus.FocusCamera.Facing;
 import static com.obviousengine.android.focus.FocusCamera.OpenCallback;
 
@@ -30,15 +29,13 @@ import android.os.Build;
 import android.os.Handler;
 import android.util.DisplayMetrics;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 /**
  * The {@link Focus} implementation on top of Camera2 API.
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 final class DefaultFocus extends Focus {
-
-    private static final Tag TAG = new Tag("DefaultFocus");
 
     private final Context context;
     private final CameraManager cameraManager;
@@ -62,7 +59,7 @@ final class DefaultFocus extends Focus {
                      final OpenCallback openCallback, Handler handler) {
         try {
             final String cameraId = getCameraId(facing);
-            Log.i(TAG, "Opening Camera ID " + cameraId);
+            Timber.i("Opening Camera ID %s", cameraId);
             cameraManager.openCamera(cameraId, new CameraDevice.StateCallback() {
                 // We may get multiple calls to StateCallback, but only the
                 // first callback indicates the status of the camera-opening
@@ -110,22 +107,14 @@ final class DefaultFocus extends Focus {
                                     device, characteristics, pictureSize);
                             openCallback.onCameraOpened(focusCamera);
                         } catch (CameraAccessException e) {
-                            Log.d(TAG, "Could not get camera characteristics");
+                            Timber.d("Could not get camera characteristics");
                             openCallback.onFailure();
                         }
                     }
                 }
             }, handler);
-        } catch (CameraAccessException ex) {
-            Log.e(TAG, "Could not open camera. " + ex.getMessage());
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    openCallback.onFailure();
-                }
-            });
-        } catch (UnsupportedOperationException ex) {
-            Log.e(TAG, "Could not open camera. " + ex.getMessage());
+        } catch (CameraAccessException | UnsupportedOperationException ex) {
+            Timber.e(ex, "Could not open camera");
             handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -152,7 +141,7 @@ final class DefaultFocus extends Focus {
 
     /** Returns the ID of the first back-facing camera. */
     private String getFirstBackCameraId() {
-        Log.d(TAG, "Getting First BACK Camera");
+        Timber.d("Getting First BACK Camera");
         String cameraId = getFirstCameraFacing(CameraCharacteristics.LENS_FACING_BACK);
         if (cameraId == null) {
             throw new RuntimeException("No back-facing camera found.");
@@ -162,7 +151,7 @@ final class DefaultFocus extends Focus {
 
     /** Returns the ID of the first front-facing camera. */
     private String getFirstFrontCameraId() {
-        Log.d(TAG, "Getting First FRONT Camera");
+        Timber.d("Getting First FRONT Camera");
         String cameraId = getFirstCameraFacing(CameraCharacteristics.LENS_FACING_FRONT);
         if (cameraId == null) {
             throw new RuntimeException("No front-facing camera found.");

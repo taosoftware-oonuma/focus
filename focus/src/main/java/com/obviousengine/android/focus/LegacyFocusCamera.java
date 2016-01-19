@@ -9,7 +9,6 @@ import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
-import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.media.CameraProfile;
 import android.os.Build;
@@ -24,11 +23,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.android.ex.camera2.portability.CameraAgent;
 import com.android.ex.camera2.portability.CameraCapabilities;
 import com.android.ex.camera2.portability.CameraSettings;
-import com.obviousengine.android.focus.debug.Log;
+
+import timber.log.Timber;
 
 final class LegacyFocusCamera extends AbstractFocusCamera {
-
-    private static final Log.Tag TAG = new Log.Tag("LegacyFocusCam");
 
     /** Default JPEG encoding quality. */
     private static final int JPEG_QUALITY = CameraProfile.getJpegEncodingQualityParameter(
@@ -127,7 +125,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
 
     LegacyFocusCamera(Context context, CameraAgent cameraAgent, CameraProxy cameraProxy,
                       Characteristics characteristics, Size pictureSize) {
-        Log.v(TAG, "Creating new LegacyFocusCamera");
+        Timber.v("Creating new LegacyFocusCamera");
 
         this.context = context.getApplicationContext();
         this.cameraAgent = cameraAgent;
@@ -161,7 +159,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         cameraProxy.autoFocus(cameraHandler, new CameraAgent.CameraAFCallback() {
             @Override
             public void onAutoFocus(boolean focused, CameraProxy camera) {
-                Log.d(TAG, "onAutoFocus() focused: " + focused);
+                Timber.d("onAutoFocus() focused: " + focused);
             }
         });
     }
@@ -185,7 +183,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     @Override
     public void setPreviewFrameListener(PreviewFrameListener listener, Handler handler) {
         if (isClosed.get()) {
-            Log.w(TAG, "Not setting listener since camera is closed");
+            Timber.w("Not setting listener since camera is closed");
             return;
         }
         previewFrameListener = listener;
@@ -211,7 +209,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     public void close(CloseCallback closeCallback) {
         if (isClosed.get()) {
-            Log.w(TAG, "Camera is already closed.");
+            Timber.w("Camera is already closed.");
             return;
         }
         cameraProxy.stopPreview();
@@ -461,7 +459,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
                 verticalFov = parameters.getVerticalViewAngle();
                 focalLength = parameters.getFocalLength();
             } catch (RuntimeException e) {
-                Log.e(TAG, "RuntimeException reading legacy camera FOV parameters");
+                Timber.e(e, "RuntimeException reading legacy camera FOV parameters");
             }
         }
     }
@@ -513,8 +511,8 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         Size optimalPreview = getOptimalPreviewSize(pictureSize, context);
         Size originalPreview = new Size(cameraSettings.getCurrentPreviewSize());
         if (!optimalPreview.equals(originalPreview)) {
-            Log.v(TAG, "Setting preview size. Optimal: "
-                       + optimalPreview + ", original: " + originalPreview);
+            Timber.v("Setting preview size. Optimal: "
+                    + optimalPreview + ", original: " + originalPreview);
             cameraSettings.setPreviewSize(new com.android.ex.camera2.portability.Size(
                     optimalPreview.getWidth(), optimalPreview.getHeight()));
         }
@@ -522,20 +520,18 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         Size optimalPicture = getOptimalPictureSize(pictureSize, context);
         Size originalPicture = new Size(cameraSettings.getCurrentPhotoSize());
         if (!optimalPicture.equals(originalPicture)) {
-            Log.v(TAG, "Setting picture size. Optimal: "
-                       + optimalPicture + ", original: " + originalPicture);
+            Timber.v("Setting picture size. Optimal: "
+                    + optimalPicture + ", original: " + originalPicture);
             cameraSettings.setPhotoSize(new com.android.ex.camera2.portability.Size(
                     optimalPicture.getWidth(), optimalPicture.getHeight()));
         }
 
         if (optimalPicture.getWidth() != 0 && optimalPicture.getHeight() != 0) {
-//            Log.v(TAG, "updating aspect ratio");
             // TODO(eleventigers) update aspect ratio
-
         }
 
-        Log.d(TAG, "Preview size is " + optimalPreview);
-        Log.d(TAG, "Picture size is " + optimalPicture);
+        Timber.d("Preview size is " + optimalPreview);
+        Timber.d("Picture size is " + optimalPicture);
     }
 
     private void updateSettingsInitialize() {
@@ -636,7 +632,7 @@ final class LegacyFocusCamera extends AbstractFocusCamera {
         if (value >= min && value <= max) {
             cameraSettings.setExposureCompensationIndex(value);
         } else {
-            Log.w(TAG, "invalid exposure range: " + value);
+            Timber.w("invalid exposure range: " + value);
         }
     }
 }

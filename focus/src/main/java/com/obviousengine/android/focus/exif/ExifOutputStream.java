@@ -24,7 +24,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 /**
  * This class provides a way to replace the Exif header of a JPEG image.
@@ -58,7 +58,7 @@ import com.obviousengine.android.focus.debug.Log;
  * </pre>
  */
 class ExifOutputStream extends FilterOutputStream {
-    private static final Log.Tag TAG = new Log.Tag("ExifOutputStream");
+
     private static final boolean DEBUG = false;
     private static final int STREAMBUFFER_SIZE = 0x00010000; // 64Kb
 
@@ -211,7 +211,7 @@ class ExifOutputStream extends FilterOutputStream {
             return;
         }
         if (DEBUG) {
-            Log.v(TAG, "Writing exif data...");
+            Timber.v("Writing exif data...");
         }
         ArrayList<ExifTag> nullTags = stripNullValueTags(mExifData);
         createRequiredIfdAndTag();
@@ -287,7 +287,7 @@ class ExifOutputStream extends FilterOutputStream {
             dataOutputStream.writeShort(tag.getDataType());
             dataOutputStream.writeInt(tag.getComponentCount());
             if (DEBUG) {
-                Log.v(TAG, "\n" + tag.toString());
+                Timber.v("\n" + tag.toString());
             }
             if (tag.getDataSize() > 4) {
                 dataOutputStream.writeInt(tag.getOffset());

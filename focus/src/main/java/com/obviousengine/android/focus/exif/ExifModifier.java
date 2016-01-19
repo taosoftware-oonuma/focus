@@ -24,10 +24,10 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 class ExifModifier {
-    public static final Log.Tag TAG = new Log.Tag("ExifModifier");
+
     public static final boolean DEBUG = false;
     private final ByteBuffer mByteBuffer;
     private final ExifData mTagToModified;
@@ -147,8 +147,8 @@ class ExifModifier {
 
     private void writeTagValue(ExifTag tag, int offset) {
         if (DEBUG) {
-            Log.v(TAG, "modifying tag to: \n" + tag.toString());
-            Log.v(TAG, "at offset: " + offset);
+            Timber.v("modifying tag to: \n" + tag.toString());
+            Timber.v("at offset: " + offset);
         }
         mByteBuffer.position(offset + mOffsetBase);
         switch (tag.getDataType()) {

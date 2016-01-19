@@ -16,18 +16,16 @@
 
 package com.obviousengine.android.focus.exif;
 
-
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 /**
  * This class reads the EXIF header of a JPEG file and stores it in
  * {@link ExifData}.
  */
 class ExifReader {
-    private static final Log.Tag TAG = new Log.Tag("ExifReader");
 
     private final ExifInterface mInterface;
 
@@ -74,7 +72,7 @@ class ExifReader {
                     if (buf.length == parser.read(buf)) {
                         exifData.setCompressedThumbnail(buf);
                     } else {
-                        Log.w(TAG, "Failed to read the compressed thumbnail");
+                        Timber.w("Failed to read the compressed thumbnail");
                     }
                     break;
                 case ExifParser.EVENT_UNCOMPRESSED_STRIP:
@@ -82,7 +80,7 @@ class ExifReader {
                     if (buf.length == parser.read(buf)) {
                         exifData.setStripBytes(parser.getStripIndex(), buf);
                     } else {
-                        Log.w(TAG, "Failed to read the strip bytes");
+                        Timber.w("Failed to read the strip bytes");
                     }
                     break;
             }

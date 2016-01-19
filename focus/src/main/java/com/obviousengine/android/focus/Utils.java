@@ -14,21 +14,16 @@ import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.WindowManager;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import com.android.ex.camera2.portability.CameraCapabilities;
-import com.obviousengine.android.focus.debug.Log;
 import com.obviousengine.android.focus.exif.ExifInterface;
 
-public final class Utils {
+import timber.log.Timber;
 
-    private static final Log.Tag TAG = new Log.Tag("Utils");
+public final class Utils {
 
     private final static int MAX_PREVIEW_FPS_TIMES_1000 = 600000;
     private final static int PREFERRED_PREVIEW_FPS_TIMES_1000 = 30000;
@@ -186,7 +181,7 @@ public final class Utils {
         final double ASPECT_TOLERANCE;
         // HTC 4:3 ratios is over .01 from true 4:3
         if (IS_HTC && targetRatio > 1.3433 && targetRatio < 1.35) {
-            Log.w(TAG, "4:3 ratio out of normal tolerance, increasing tolerance to 0.02");
+            Timber.w("4:3 ratio out of normal tolerance, increasing tolerance to 0.02");
             ASPECT_TOLERANCE = 0.02;
         } else {
             ASPECT_TOLERANCE = 0.01;
@@ -229,7 +224,7 @@ public final class Utils {
         // Cannot find the one match the aspect ratio. This should not happen.
         // Ignore the requirement.
         if (optimalSizeIndex == -1) {
-            Log.w(TAG, "No preview size match the aspect ratio. available sizes: " + sizes);
+            Timber.w("No preview size match the aspect ratio. available sizes: " + sizes);
             minDiff = Double.MAX_VALUE;
             for (int i = 0; i < sizes.size(); i++) {
                 Size size = sizes.get(i);
@@ -258,7 +253,7 @@ public final class Utils {
 
     static int[] getPhotoPreviewFpsRange(List<int[]> frameRates) {
         if (frameRates.size() == 0) {
-            Log.e(TAG, "No supported frame rates returned!");
+            Timber.e("No supported frame rates returned!");
             return null;
         }
 
@@ -291,7 +286,7 @@ public final class Utils {
         if (resultIndex >= 0) {
             return frameRates.get(resultIndex);
         }
-        Log.e(TAG, "Can't find an appropriate frame rate range!");
+        Timber.e("Can't find an appropriate frame rate range!");
         return null;
     }
 
@@ -338,7 +333,7 @@ public final class Utils {
         try {
             exif.readExif(jpegData);
         } catch (IOException e) {
-            Log.w(TAG, "Failed to read EXIF data", e);
+            Timber.w(e, "Failed to read EXIF data");
         }
         return exif;
     }
@@ -390,7 +385,7 @@ public final class Utils {
             return files.length;
         } catch (Exception e) {
             // Default to return 1 core
-            Log.e(TAG, "Failed to count number of cores, defaulting to 1", e);
+            Timber.e(e, "Failed to count number of cores, defaulting to 1");
             return 1;
         }
     }

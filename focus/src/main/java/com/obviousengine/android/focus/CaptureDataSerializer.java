@@ -37,7 +37,7 @@ import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 /**
  * Can be used for debugging to output details about Camera2 capture request and
@@ -50,7 +50,6 @@ final class CaptureDataSerializer {
         void write(Writer writer) throws IOException;
     }
 
-    private static final Log.Tag TAG = new Log.Tag("CaptureDataSrlzr");
 
     /**
      * Generate a human-readable string of the given capture request and return
@@ -81,7 +80,7 @@ final class CaptureDataSerializer {
             }
             writer.close();
         } catch (IOException ex) {
-            Log.e(TAG, "Could not write capture data to file.", ex);
+            Timber.e(ex, "Could not write capture data to file.");
         }
     }
 
@@ -118,7 +117,7 @@ final class CaptureDataSerializer {
             @Override
             public void write(Writer writer) throws IOException {
                 List<CaptureResult.Key<?>> keys = metadata.getKeys();
-                writer.write(String.format(title));
+                writer.write(title);
 
                 // TODO: move to CameraMetadata#toString ?
                 for (CaptureResult.Key<?> key : keys) {
@@ -175,14 +174,14 @@ final class CaptureDataSerializer {
         try {
             metadata.write(writer);
         } catch (IOException e) {
-            Log.e(TAG, "dumpMetadata - Failed to dump metadata", e);
+            Timber.e(e, "dumpMetadata - Failed to dump metadata");
         } finally {
             try {
                 if (writer != null) {
                     writer.close();
                 }
             } catch (IOException e) {
-                Log.e(TAG, "dumpMetadata - Failed to close writer.", e);
+                Timber.e(e, "dumpMetadata - Failed to close writer.");
             }
         }
     }

@@ -10,7 +10,7 @@ import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 /**
  * On older Android version trying to load {@link android.hardware.camera2}
@@ -20,8 +20,6 @@ import com.obviousengine.android.focus.debug.Log;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 final class ModernFocusFactory {
 
-    private static Log.Tag TAG = new Log.Tag("Camera2FocusHlpr");
-
     @Nullable
     public static Focus newInstance(Context context) throws FocusCameraException {
         DisplayMetrics displayMetrics = getDisplayMetrics(context);
@@ -30,7 +28,7 @@ final class ModernFocusFactory {
             cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
         } catch (IllegalStateException ex) {
             cameraManager = null;
-            Log.e(TAG, "Could not get camera service v2", ex);
+            Timber.e(ex, "Could not get camera service v2");
         }
         if (cameraManager != null && isCamera2Supported(cameraManager)) {
             return new DefaultFocus(context, cameraManager, displayMetrics);
@@ -68,7 +66,7 @@ final class ModernFocusFactory {
                     CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
                     != CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY;
         } catch (CameraAccessException ex) {
-            Log.e(TAG, "Could not access camera to determine hardware-level API support.");
+            Timber.e(ex, "Could not access camera to determine hardware-level API support.");
             return false;
         }
     }

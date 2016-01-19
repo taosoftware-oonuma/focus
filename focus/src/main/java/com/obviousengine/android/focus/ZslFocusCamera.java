@@ -57,10 +57,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.obviousengine.android.focus.debug.Log;
 import com.obviousengine.android.focus.exif.ExifInterface;
 import com.obviousengine.android.focus.exif.ExifTag;
 import com.obviousengine.android.focus.exif.Rational;
+
+import timber.log.Timber;
 
 /**
  * {@link FocusCamera} implementation directly on top of the Camera2 API with zero
@@ -69,8 +70,6 @@ import com.obviousengine.android.focus.exif.Rational;
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 final class ZslFocusCamera extends AbstractFocusCamera {
-
-    private static final Log.Tag TAG = new Log.Tag("ZslFocusCamera");
 
     /** Default JPEG encoding quality. */
     private static final int JPEG_QUALITY = CameraProfile.getJpegEncodingQualityParameter(
@@ -244,7 +243,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
             session.startEmpty();
             savePicture(image, parameters, session);
             parameters.callback.onPictureTaken(session);
-            Log.v(TAG, "Image saved.  Frame number = " + captureResult.getFrameNumber());
+            Timber.v("Image saved.  Frame number = " + captureResult.getFrameNumber());
         }
     }
 
@@ -256,7 +255,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
      * @param pictureSize the size of the final image to be taken.
      */
     ZslFocusCamera(CameraDevice device, CameraCharacteristics characteristics, Size pictureSize) {
-        Log.v(TAG, "Creating new ZslFocusCamera");
+        Timber.v("Creating new ZslFocusCamera");
 
         this.device = device;
         this.characteristics = characteristics;
@@ -444,10 +443,10 @@ final class ZslFocusCamera extends AbstractFocusCamera {
             boolean capturedPreviousFrame = captureManager.tryCaptureExistingImage(
                     new ImageCaptureTask(params, session), zslConstraints);
             if (capturedPreviousFrame) {
-                Log.v(TAG, "Saving previous frame");
+                Timber.v("Saving previous frame");
                 onShutterInvokeUI(params);
             } else {
-                Log.v(TAG, "No good image Available.  Capturing next available good image.");
+                Timber.v("No good image Available.  Capturing next available good image.");
                 // If there was no good frame available in the ring buffer
                 // already, capture the next good image.
                 // TODO Disable the shutter button until this image is captured.
@@ -474,7 +473,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
                                 @Override
                                 public void onImageMetadataChange(Key<?> key, Object oldValue,
                                                                   Object newValue, CaptureResult result) {
-                                    Log.v(TAG, "AE State Changed");
+                                    Timber.v("AE State Changed");
                                     if (oldValue.equals(
                                             Integer.valueOf(
                                                     CaptureResult.CONTROL_AE_STATE_PRECAPTURE))) {
@@ -539,13 +538,13 @@ final class ZslFocusCamera extends AbstractFocusCamera {
     @Override
     public void close(CloseCallback closeCallback) {
         if (isClosed) {
-            Log.w(TAG, "Camera is already closed.");
+            Timber.w("Camera is already closed.");
             return;
         }
         try {
             captureSession.abortCaptures();
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Could not abort captures in progress.");
+            Timber.e(e, "Could not abort captures in progress.");
         }
         isClosed = true;
         this.closeCallback = closeCallback;
@@ -682,7 +681,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
                 }
             }, cameraHandler);
         } catch (CameraAccessException ex) {
-            Log.e(TAG, "Could not set up capture session", ex);
+            Timber.e(ex, "Could not set up capture session");
             listener.onSetupFailed();
         }
     }
@@ -719,7 +718,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
      *         capture request.
      */
     private boolean sendRepeatingCaptureRequest() {
-        Log.v(TAG, "sendRepeatingCaptureRequest()");
+        Timber.v("sendRepeatingCaptureRequest()");
         try {
             CaptureRequest.Builder builder;
             if (ZSL_ENABLED) {
@@ -751,9 +750,9 @@ final class ZslFocusCamera extends AbstractFocusCamera {
             return true;
         } catch (CameraAccessException e) {
             if (ZSL_ENABLED) {
-                Log.v(TAG, "Could not execute zero-shutter-lag repeating request.", e);
+                Timber.w(e, "Could not execute zero-shutter-lag repeating request.");
             } else {
-                Log.v(TAG, "Could not execute preview request.", e);
+                Timber.w(e, "Could not execute preview request.");
             }
             return false;
         }
@@ -766,7 +765,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
      *         capture request.
      */
     private boolean sendSingleRequest(FocusCamera.PhotoCaptureParameters params) {
-        Log.v(TAG, "sendSingleRequest()");
+        Timber.v("sendSingleRequest()");
         try {
             CaptureRequest.Builder builder;
             builder = device.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
@@ -796,13 +795,13 @@ final class ZslFocusCamera extends AbstractFocusCamera {
             captureSession.capture(builder.build(), captureManager, cameraHandler);
             return true;
         } catch (CameraAccessException e) {
-            Log.v(TAG, "Could not execute single still capture request.", e);
+            Timber.w(e, "Could not execute single still capture request.");
             return false;
         }
     }
 
     private boolean sendAutoExposureTriggerRequest(Flash flashMode) {
-        Log.v(TAG, "sendAutoExposureTriggerRequest()");
+        Timber.v("sendAutoExposureTriggerRequest()");
         try {
             CaptureRequest.Builder builder;
             if (ZSL_ENABLED) {
@@ -831,7 +830,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
 
             return true;
         } catch (CameraAccessException e) {
-            Log.v(TAG, "Could not execute auto exposure trigger request.", e);
+            Timber.w(e, "Could not execute auto exposure trigger request.");
             return false;
         }
     }
@@ -839,7 +838,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
     /**
      */
     private boolean sendAutoFocusTriggerRequest() {
-        Log.v(TAG, "sendAutoFocusTriggerRequest()");
+        Timber.v("sendAutoFocusTriggerRequest()");
         try {
             CaptureRequest.Builder builder;
             if (ZSL_ENABLED) {
@@ -866,7 +865,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
 
             return true;
         } catch (CameraAccessException e) {
-            Log.v(TAG, "Could not execute auto focus trigger request.", e);
+            Timber.w(e, "Could not execute auto focus trigger request.");
             return false;
         }
     }
@@ -879,7 +878,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
      *         capture request.
      */
     private boolean sendAutoFocusHoldRequest() {
-        Log.v(TAG, "sendAutoFocusHoldRequest()");
+        Timber.v("sendAutoFocusHoldRequest()");
         try {
             CaptureRequest.Builder builder;
             if (ZSL_ENABLED) {
@@ -907,7 +906,7 @@ final class ZslFocusCamera extends AbstractFocusCamera {
 
             return true;
         } catch (CameraAccessException e) {
-            Log.v(TAG, "Could not execute auto focus hold request.", e);
+            Timber.w(e, "Could not execute auto focus hold request.");
             return false;
         }
     }

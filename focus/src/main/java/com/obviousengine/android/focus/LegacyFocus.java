@@ -25,14 +25,13 @@ import android.os.Handler;
 
 import com.android.ex.camera2.portability.CameraAgent;
 import com.android.ex.camera2.portability.CameraDeviceInfo;
-import com.obviousengine.android.focus.debug.Log;
+
+import timber.log.Timber;
 
 /**
  * The {@link Focus} implementation on top of the portability layer.
  */
 final class LegacyFocus extends Focus {
-
-    private static final Log.Tag TAG = new Log.Tag("LegacyFocus");
 
     private final Context context;
     private final CameraAgent cameraAgent;
@@ -48,12 +47,12 @@ final class LegacyFocus extends Focus {
     public void open(Facing facing, final Size pictureSize,
                      final OpenCallback openCallback, Handler handler) {
         final int cameraId = getCameraId(facing);
-        Log.d(TAG, "Opening Camera ID " + cameraId);
+        Timber.d("Opening Camera ID %d", cameraId);
         cameraAgent.openCamera(handler, cameraId, new CameraAgent.CameraOpenCallback() {
 
             @Override
             public void onCameraOpened(CameraAgent.CameraProxy camera) {
-                Log.v(TAG, "onCameraOpened(" + camera + ")");
+                Timber.v("onCameraOpened(" + camera + ")");
                 CameraDeviceInfo.Characteristics characteristics = camera.getCharacteristics();
                 FocusCamera focusCamera = new LegacyFocusCamera(context, cameraAgent,
                         camera, characteristics, pictureSize);
@@ -62,25 +61,25 @@ final class LegacyFocus extends Focus {
 
             @Override
             public void onCameraDisabled(int cameraId) {
-                Log.w(TAG, "onCameraDisabled(" + cameraId + ")");
+                Timber.w("onCameraDisabled(" + cameraId + ")");
                 openCallback.onCameraClosed();
             }
 
             @Override
             public void onDeviceOpenFailure(int cameraId, String info) {
-                Log.w(TAG, "onDeviceOpenFailure(" + cameraId + ", " + info + ")");
+                Timber.w("onDeviceOpenFailure(" + cameraId + ", " + info + ")");
                 openCallback.onFailure();
             }
 
             @Override
             public void onDeviceOpenedAlready(int cameraId, String info) {
-                Log.w(TAG, "onDeviceOpenedAlready(" + cameraId + ", " + info + ")");
+                Timber.w("onDeviceOpenedAlready(" + cameraId + ", " + info + ")");
                 openCallback.onFailure();
             }
 
             @Override
             public void onReconnectionFailure(CameraAgent mgr, String info) {
-                Log.w(TAG, "onReconnectionFailure(" + cameraId + ")");
+                Timber.w("onReconnectionFailure(" + cameraId + ")");
                 openCallback.onFailure();
             }
         });
@@ -102,7 +101,7 @@ final class LegacyFocus extends Focus {
 
     /** Returns the ID of the first back-facing camera. */
     private int getFirstBackCameraId() {
-        Log.d(TAG, "Getting First BACK Camera");
+        Timber.d("Getting First BACK Camera");
         int cameraId = getFirstCameraFacing(Facing.BACK);
         if (cameraId == -1) {
             throw new RuntimeException("No back-facing camera found.");
@@ -112,7 +111,7 @@ final class LegacyFocus extends Focus {
 
     /** Returns the ID of the first front-facing camera. */
     private int getFirstFrontCameraId() {
-        Log.d(TAG, "Getting First FRONT Camera");
+        Timber.d("Getting First FRONT Camera");
         int cameraId = getFirstCameraFacing(Facing.FRONT);
         if (cameraId == -1) {
             throw new RuntimeException("No front-facing camera found.");

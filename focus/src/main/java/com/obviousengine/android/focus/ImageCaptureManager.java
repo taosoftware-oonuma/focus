@@ -16,7 +16,6 @@
 
 package com.obviousengine.android.focus;
 
-import static com.obviousengine.android.focus.debug.Log.Tag;
 import static com.obviousengine.android.focus.ConcurrentSharedRingBuffer.PinStateListener;
 import static com.obviousengine.android.focus.ConcurrentSharedRingBuffer.SwapTask;
 import static com.obviousengine.android.focus.ConcurrentSharedRingBuffer.Selector;
@@ -43,7 +42,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 /**
  * Implements {@link ImageReader.OnImageAvailableListener} and
@@ -154,7 +153,7 @@ final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback imp
                 image.close();
                 int numOpenImages = ImageCaptureManager.this.numOpenImages.decrementAndGet();
                 if (DEBUG_PRINT_OPEN_IMAGE_COUNT) {
-                    Log.v(TAG, "Closed an image. Number of open images = " + numOpenImages);
+                    Timber.v("Closed an image. Number of open images = " + numOpenImages);
                 }
             }
 
@@ -214,8 +213,6 @@ final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback imp
             return metadata;
         }
     }
-
-    private static final Tag TAG = new Tag("ZSLImageListener");
 
     /**
      * If true, the number of open images will be printed to LogCat every time
@@ -399,8 +396,7 @@ final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback imp
 
             for (final MetadataChangeListener listener :
                     metadataChangeListeners.get(key)) {
-                Log.v(TAG, "Dispatching to metadata change listener for key: "
-                        + key.toString());
+                Timber.v("Dispatching to metadata change listener for key: " + key.toString());
                 listenerHandler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -420,7 +416,7 @@ final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback imp
         // Detect camera thread stall.
         long now = SystemClock.uptimeMillis();
         if (now - debugLastOnCaptureCompletedMillis < DEBUG_INTERFRAME_STALL_WARNING) {
-            Log.e(TAG, "Camera thread has stalled for " + ++debugStalledFrameCount +
+            Timber.e("Camera thread has stalled for " + ++debugStalledFrameCount +
                     " frames at # " + result.getFrameNumber() + ".");
         } else {
             debugStalledFrameCount = 0;
@@ -454,7 +450,7 @@ final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback imp
 
         if (!swapSuccess) {
             // Do nothing on failure to swap in.
-            Log.v(TAG, "Unable to add new image metadata to ring-buffer.");
+            Timber.v("Unable to add new image metadata to ring-buffer.");
         }
 
         tryExecutePendingCaptureRequest(timestamp);
@@ -469,7 +465,7 @@ final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback imp
         if (img != null) {
             int numOpenImages = this.numOpenImages.incrementAndGet();
             if (DEBUG_PRINT_OPEN_IMAGE_COUNT) {
-                Log.v(TAG, "Acquired an image. Number of open images = " + numOpenImages);
+                Timber.v("Acquired an image. Number of open images = " + numOpenImages);
             }
 
             // Try to place the newly-acquired image into the ring buffer.
@@ -502,7 +498,7 @@ final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback imp
                 img.close();
                 numOpenImages = this.numOpenImages.decrementAndGet();
                 if (DEBUG_PRINT_OPEN_IMAGE_COUNT) {
-                    Log.v(TAG, "Closed an image. Number of open images = " + numOpenImages);
+                    Timber.v("Closed an image. Number of open images = " + numOpenImages);
                 }
             }
 
@@ -513,7 +509,7 @@ final class ImageCaptureManager extends CameraCaptureSession.CaptureCallback imp
             if (totTime > DEBUG_MAX_IMAGE_CALLBACK_DUR) {
                 // If it takes too long to swap elements, we will start skipping
                 // preview frames, resulting in visible jank.
-                Log.v(TAG, "onImageAvailable() took " + totTime + "ms");
+                Timber.v("onImageAvailable() took " + totTime + "ms");
             }
         }
     }

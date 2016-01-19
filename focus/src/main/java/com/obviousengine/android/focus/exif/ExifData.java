@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.obviousengine.android.focus.debug.Log;
+import timber.log.Timber;
 
 /**
  * This class stores the EXIF header in IFDs according to the JPEG
@@ -32,7 +32,7 @@ import com.obviousengine.android.focus.debug.Log;
  * @see IfdData
  */
 class ExifData {
-    private static final Log.Tag TAG = new Log.Tag("ExifData");
+
     private static final byte[] USER_COMMENT_ASCII = {
             0x41, 0x53, 0x43, 0x49, 0x49, 0x00, 0x00, 0x00
     };
@@ -243,7 +243,7 @@ class ExifData {
                 return null;
             }
         } catch (UnsupportedEncodingException e) {
-            Log.w(TAG, "Failed to decode the user comment");
+            Timber.w("Failed to decode the user comment");
             return null;
         }
     }

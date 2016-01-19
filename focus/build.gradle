@@ -12,6 +12,7 @@ apply plugin: 'com.android.library'
 dependencies {
     compile rootProject.ext.supportV4
     compile rootProject.ext.supportAnnotations
+    compile rootProject.ext.timber
 }
 
 android {
