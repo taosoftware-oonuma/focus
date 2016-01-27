@@ -129,7 +129,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             aFRegions = ZERO_WEIGHT_3A_REGION;
             aERegions = ZERO_WEIGHT_3A_REGION;
             controlAFMode = CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-            repeatingPreview(null);
+            repeatingPreview(previewSurface);
         }
     };
 
@@ -192,6 +192,8 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     /** The underlying Camera2 API camera device. */
     private final CameraDevice device;
 
+    private final LegacyParameters legacyParameters;
+
     /**
      * The aspect ratio (getWidth/getHeight) of the full resolution for this camera.
      * Usually the native aspect ratio of this camera.
@@ -199,6 +201,9 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     private final float fullSizeAspectRatio;
     /** The Camera2 API capture session currently active. */
     private CameraCaptureSession captureSession;
+
+    private final Object sessionLock = new Object();
+
     /** The surface onto which to render the preview. */
     private Surface previewSurface;
     /**
@@ -230,6 +235,28 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                 }
             };
 
+    private final ImageReader previewImageReader;
+    private final ImageReader.OnImageAvailableListener previewImageListener =
+            new ImageReader.OnImageAvailableListener() {
+        @Override
+        public void onImageAvailable(ImageReader reader) {
+            try (Image img = reader.acquireLatestImage()) {
+                if (img != null) {
+                    PreviewFrame frame = PreviewFrame
+                            .create(getDataFromImage(img),
+                                    img.getFormat(), img.getWidth(), img.getHeight());
+                    synchronized (sessionLock) {
+                        if (previewFrameListener != null) {
+                            previewFrameListener.onPreviewFrame(frame);
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    private PreviewFrameListener previewFrameListener;
+
     /**
      * Instantiates a new camera based on Camera 2 API.
      *
@@ -237,9 +264,12 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
      * @param characteristics The device's characteristics.
      * @param pictureSize the size of the final image to be taken.
      */
-    DefaultFocusCamera(CameraDevice device, CameraCharacteristics characteristics, Size pictureSize) {
+    DefaultFocusCamera(CameraDevice device, CameraCharacteristics characteristics,
+                       Size pictureSize, LegacyParameters legacyParameters) {
         this.device = device;
         this.characteristics = characteristics;
+        this.legacyParameters = legacyParameters;
+
         fullSizeAspectRatio = calculateFullSizeAspectRatio(characteristics);
 
         cameraThread = new HandlerThread("FocusCamera");
@@ -251,6 +281,14 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                 pictureSize.getHeight(),
                 CAPTURE_IMAGE_FORMAT, 2);
         captureImageReader.setOnImageAvailableListener(captureImageListener, cameraHandler);
+
+
+        previewImageReader = ImageReader.newInstance(
+                pictureSize.getWidth(),
+                pictureSize.getHeight(),
+                CAPTURE_IMAGE_FORMAT, 2);
+        previewImageReader.setOnImageAvailableListener(previewImageListener, cameraHandler);
+
         Timber.d("New Camera2 based DefaultFocusCamera created.");
     }
 
@@ -291,7 +329,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     /**
      * Take picture immediately. Parameters passed through from takePicture().
      */
-    public void takePictureNow(PhotoCaptureParameters params, CaptureSession session) {
+    private void takePictureNow(PhotoCaptureParameters params, CaptureSession session) {
         long dt = SystemClock.uptimeMillis() - takePictureStartMillis;
         Timber.v("Taking shot with extra AF delay of " + dt + " ms.");
         // This will throw a RuntimeException, if parameters are not sane.
@@ -320,8 +358,9 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                 CaptureDataSerializer.toFile("Normal Capture", request, new File(debugDataDir,
                         "capture.txt"));
             }
-
-            captureSession.capture(request, autoFocusStateListener, cameraHandler);
+            synchronized (sessionLock) {
+                captureSession.capture(request, autoFocusStateListener, cameraHandler);
+            }
         } catch (CameraAccessException e) {
             Timber.e(e, "Could not access camera for still image capture.");
             broadcastReadyState(true);
@@ -344,7 +383,34 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
 
     @Override
     public void setPreviewFrameListener(PreviewFrameListener listener, Handler handler) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        if (isClosed) {
+            Timber.w("Not setting listener since camera is closed");
+            return;
+        }
+        synchronized (sessionLock) {
+            previewFrameListener = new PreviewFrameListenerHandlerForward(listener, handler);
+        }
+    }
+
+    private static final class PreviewFrameListenerHandlerForward implements PreviewFrameListener {
+
+        private final PreviewFrameListener listener;
+        private final Handler handler;
+
+        public PreviewFrameListenerHandlerForward(PreviewFrameListener listener, Handler handler) {
+            this.listener = listener;
+            this.handler = handler;
+        }
+
+        @Override
+        public void onPreviewFrame(final PreviewFrame frame) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    listener.onPreviewFrame(frame);
+                }
+            });
+        }
     }
 
     @Override
@@ -369,13 +435,20 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             return;
         }
         try {
-            captureSession.abortCaptures();
+            synchronized (sessionLock) {
+                if (captureSession != null) {
+                    captureSession.abortCaptures();
+                    captureSession = null;
+                }
+            }
         } catch (CameraAccessException e) {
             Timber.e(e, "Could not abort captures in progress.");
         }
         isClosed = true;
         this.closeCallback = closeCallback;
         cameraThread.quitSafely();
+        captureImageReader.close();
+        previewImageReader.close();
         device.close();
     }
 
@@ -469,15 +542,18 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
      *            rendered.
      * @param listener called when the setup is completed.
      */
-    private void setup(Surface previewSurface, final CaptureReadyCallback listener) {
+    private void setup(final Surface previewSurface, final CaptureReadyCallback listener) {
         try {
-            if (captureSession != null) {
-                captureSession.abortCaptures();
-                captureSession = null;
+            synchronized (sessionLock) {
+                if (captureSession != null) {
+                    captureSession.abortCaptures();
+                    captureSession = null;
+                }
             }
             List<Surface> outputSurfaces = new ArrayList<>(2);
             outputSurfaces.add(previewSurface);
             outputSurfaces.add(captureImageReader.getSurface());
+            outputSurfaces.add(previewImageReader.getSurface());
 
             device.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
                 @Override
@@ -492,7 +568,8 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
                     aERegions = ZERO_WEIGHT_3A_REGION;
                     zoomValue = 1f;
                     cropRegion = cropRegionForZoom(zoomValue);
-                    boolean success = repeatingPreview(null);
+                    boolean success = repeatingPreview(
+                            previewSurface, previewImageReader.getSurface());
                     if (success) {
                         listener.onReadyForCapture();
                     } else {
@@ -502,7 +579,6 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
 
                 @Override
                 public void onClosed(@NonNull CameraCaptureSession session) {
-                    super.onClosed(session);
                     if (closeCallback != null) {
                         closeCallback.onCameraClosed();
                     }
@@ -536,17 +612,23 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
      * Request preview capture stream with AF_MODE_CONTINUOUS_PICTURE.
      *
      * @return true if request was build and sent successfully.
-     * @param tag
      */
-    private boolean repeatingPreview(Object tag) {
+    private boolean repeatingPreview(Surface... surfaces) {
+        if (surfaces == null) {
+            return false;
+        }
         try {
             CaptureRequest.Builder builder = device.
                     createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            builder.addTarget(previewSurface);
+            for (Surface surface : surfaces) {
+                builder.addTarget(surface);
+            }
             builder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
             addBaselineCaptureKeysToRequest(builder);
-            captureSession.setRepeatingRequest(builder.build(), autoFocusStateListener,
-                    cameraHandler);
+            synchronized (sessionLock) {
+                captureSession.setRepeatingRequest(builder.build(), autoFocusStateListener,
+                                                   cameraHandler);
+            }
             Timber.v("Sent repeating Preview request, zoom = %.2f", zoomValue);
             return true;
         } catch (CameraAccessException ex) {
@@ -569,10 +651,11 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
             addBaselineCaptureKeysToRequest(builder);
             builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
             builder.setTag(tag);
-            captureSession.capture(builder.build(), autoFocusStateListener, cameraHandler);
-
+            synchronized (sessionLock) {
+                captureSession.capture(builder.build(), autoFocusStateListener, cameraHandler);
+            }
             // Step 2: Call repeatingPreview to update controlAFMode.
-            repeatingPreview(tag);
+            repeatingPreview(previewSurface, previewImageReader.getSurface());
             resumeContinuousAFAfterDelay(FOCUS_HOLD_MILLIS);
         } catch (CameraAccessException ex) {
             Timber.e(ex, "Could not execute preview request.");
@@ -644,7 +727,7 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
     public void setZoom(float zoom) {
         zoomValue = zoom;
         cropRegion = cropRegionForZoom(zoom);
-        repeatingPreview(null);
+        repeatingPreview(previewSurface, previewImageReader.getSurface());
     }
 
     @Override
@@ -654,22 +737,30 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
 
     @Override
     public float getHorizontalFov() {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        return legacyParameters.getHorizontalFov();
     }
 
     @Override
     public float getVerticalFov() {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        return legacyParameters.getVerticalFov();
     }
 
     @Override
     public float[] getSupportedFocalLengths() {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        return new float[]{ legacyParameters.getFocalLength() };
     }
 
     @Override
     public String dumpDeviceSettings() {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        StringBuilder builder = new StringBuilder();
+        for (CameraCharacteristics.Key<?> key : characteristics.getKeys()) {
+            builder.append(key.getName());
+            builder.append("=");
+            Object value = characteristics.get(key);
+            builder.append(value != null ? Utils.toString(value) : "n/a");
+            builder.append(";\n");
+        }
+        return builder.toString();
     }
 
     @Override
@@ -719,5 +810,76 @@ final class DefaultFocusCamera extends AbstractFocusCamera {
         buffer.rewind();
         img.close();
         return imageBytes;
+    }
+
+    /**
+     * <p>Read data from all planes of an Image into a contiguous unpadded, unpacked
+     * 1-D linear byte array, such that it can be write into disk, or accessed by
+     * software conveniently. It supports YUV_420_888/NV21/YV12 and JPEG input
+     * Image format.</p>
+     *
+     * <p>For YUV_420_888/NV21/YV12/Y8/Y16, it returns a byte array that contains
+     * the Y plane data first, followed by U(Cb), V(Cr) planes if there is any
+     * (xstride = width, ystride = height for chroma and luma components).</p>
+     *
+     * <p>For JPEG, it returns a 1-D byte array contains a complete JPEG image.</p>
+     */
+    private static byte[] getDataFromImage(Image image) {
+        int format = image.getFormat();
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int rowStride, pixelStride;
+        byte[] data;
+        // Read image data
+        Image.Plane[] planes = image.getPlanes();
+        ByteBuffer buffer;
+        // JPEG doesn't have pixelstride and rowstride, treat it as 1D buffer.
+        if (format == ImageFormat.JPEG) {
+            buffer = planes[0].getBuffer();
+            data = new byte[buffer.capacity()];
+            buffer.get(data);
+            return data;
+        }
+        int offset = 0;
+        data = new byte[width * height * ImageFormat.getBitsPerPixel(format) / 8];
+        byte[] rowData = new byte[planes[0].getRowStride()];
+        for (int i = 0; i < planes.length; i++) {
+            buffer = planes[i].getBuffer();
+            rowStride = planes[i].getRowStride();
+            pixelStride = planes[i].getPixelStride();
+            // For multi-planar yuv images, assuming yuv420 with 2x2 chroma subsampling.
+            int w = (i == 0) ? width : width / 2;
+            int h = (i == 0) ? height : height / 2;
+            for (int row = 0; row < h; row++) {
+                int bytesPerPixel = ImageFormat.getBitsPerPixel(format) / 8;
+                if (pixelStride == bytesPerPixel) {
+                    // Special case: optimized read of the entire row
+                    int length = w * bytesPerPixel;
+                    buffer.get(data, offset, length);
+                    // Advance buffer the remainder of the row stride, unless on the last row.
+                    // Otherwise, this will throw an IllegalArgumentException because the buffer
+                    // doesn't include the last padding.
+                    if (h - row != 1) {
+                        buffer.position(buffer.position() + rowStride - length);
+                    }
+                    offset += length;
+                } else {
+                    // On the last row only read the width of the image minus the pixel stride
+                    // plus one. Otherwise, this will throw a BufferUnderflowException because the
+                    // buffer doesn't include the last padding.
+                    if (h - row == 1) {
+                        buffer.get(rowData, 0, width - pixelStride + 1);
+                    } else {
+                        buffer.get(rowData, 0, rowStride);
+                    }
+
+                    for (int col = 0; col < w; col++) {
+                        data[offset++] = rowData[col * pixelStride];
+                    }
+                }
+            }
+            buffer.rewind();
+        }
+        return data;
     }
 }

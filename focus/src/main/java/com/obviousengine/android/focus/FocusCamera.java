@@ -269,9 +269,12 @@ public interface FocusCamera {
                 case ImageFormat.NV21:
                     return new int[] {width, width};
                 case ImageFormat.YUY2:
-                    return  new int[] {width * 2};
+                    return new int[] {width * 2};
+                case ImageFormat.YUV_420_888:
+                    return new int[] {width * 3};
                 default:
-                    throw new IllegalArgumentException("Only ImageFormat.NV21 and ImageFormat.YUY2 "
+                    throw new IllegalArgumentException("Only ImageFormat.NV21, ImageFormat.YUY2 "
+                                                               + "and ImageFormat.YUV_420_888 "
                                                                + "supported for now");
             }
         }

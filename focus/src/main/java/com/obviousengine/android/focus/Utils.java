@@ -392,6 +392,34 @@ public final class Utils {
         }
     }
 
+    /**
+     * Creates toString representation of the given array. If the given object is not array,
+     * returns default object toString representation.
+     */
+    public static String toString(Object arr) {
+        if (arr instanceof int[]) {
+            return Arrays.toString((int[]) arr);
+        } else if (arr instanceof long[]) {
+            return Arrays.toString((long[]) arr);
+        } else if (arr instanceof short[]) {
+            return Arrays.toString((short[]) arr);
+        } else if (arr instanceof boolean[]) {
+            return Arrays.toString((boolean[]) arr);
+        } else if (arr instanceof byte[]) {
+            return Arrays.toString((byte[]) arr);
+        } else if (arr instanceof char[]) {
+            return Arrays.toString((char[]) arr);
+        } else if (arr instanceof double[]) {
+            return Arrays.toString((double[]) arr);
+        } else if (arr instanceof float[]) {
+            return Arrays.toString((float[]) arr);
+        } else if (arr instanceof Object[]) {
+            return Arrays.toString((Object[]) arr);
+        } else {
+            return arr.toString();
+        }
+    }
+
     private Utils() {
         throw new AssertionError("No instances");
     }

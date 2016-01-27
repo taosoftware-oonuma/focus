@@ -29,7 +29,7 @@ import android.os.Handler;
 public abstract class Focus {
 
     /** Set to true if Focus should force use legacy camera wrapper implementation **/
-    private static final boolean DEBUG_FORCE_LEGACY = true;
+    private static final boolean DEBUG_FORCE_LEGACY = false;
 
     /**
      * Attempts to open the camera facing the given direction with the given

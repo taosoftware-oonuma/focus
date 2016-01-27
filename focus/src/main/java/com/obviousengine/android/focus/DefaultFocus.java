@@ -21,6 +21,7 @@ import static com.obviousengine.android.focus.FocusCamera.OpenCallback;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.hardware.Camera;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
@@ -60,6 +61,7 @@ final class DefaultFocus extends Focus {
                      final OpenCallback openCallback, Handler handler) {
         try {
             final String cameraId = getCameraId(facing);
+            final LegacyParameters legacyParameters = LegacyParameters.create(cameraId);
             Timber.i("Opening Camera ID %s", cameraId);
             cameraManager.openCamera(cameraId, new CameraDevice.StateCallback() {
                 // We may get multiple calls to StateCallback, but only the
@@ -105,7 +107,7 @@ final class DefaultFocus extends Focus {
                             CameraCharacteristics characteristics = cameraManager
                                     .getCameraCharacteristics(device.getId());
                             FocusCamera focusCamera = new DefaultFocusCamera(
-                                    device, characteristics, pictureSize);
+                                    device, characteristics, pictureSize, legacyParameters);
                             openCallback.onCameraOpened(focusCamera);
                         } catch (CameraAccessException e) {
                             Timber.d("Could not get camera characteristics");
